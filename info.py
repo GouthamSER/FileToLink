@@ -7,7 +7,7 @@ id_pattern = re.compile(r'^.\d+$')
 SESSION = environ.get('SESSION', 'FileToLink')
 API_ID = int(environ.get('API_ID', '18979569'))
 API_HASH = environ.get('API_HASH', '45db354387b8122bdf6c1b0beef93743')
-BOT_TOKEN = environ.get('BOT_TOKEN', "")
+BOT_TOKEN = environ.get('BOT_TOKEN', "mongodb+srv://WXML:WXML@wxml.mov8ctk.mongodb.net/?appName=WXML")
 
 # Bot settings
 PORT = environ.get("PORT", "8080")
