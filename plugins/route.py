@@ -1,4 +1,4 @@
-import re, math, logging, secrets, mimetypes, time
+import re, math, logging, secrets, mimetypes, time, urllib.parse
 from info import *
 from aiohttp import web
 from aiohttp.http_exceptions import BadStatusLine
@@ -128,8 +128,9 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
 
     mime_type = file_id.mime_type
     file_name = file_id.file_name
-    # Replace spaces with dots in file_name if it exists
+    # URL-decode and replace spaces with dots in file_name if it exists
     if file_name:
+        file_name = urllib.parse.unquote(file_name)
         file_name = file_name.replace(" ", ".")
     disposition = "attachment"
 
