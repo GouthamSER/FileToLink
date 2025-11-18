@@ -128,6 +128,9 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
 
     mime_type = file_id.mime_type
     file_name = file_id.file_name
+    # Replace spaces with dots in file_name if it exists
+    if file_name:
+        file_name = file_name.replace(" ", ".")
     disposition = "attachment"
 
     if mime_type:
@@ -156,4 +159,3 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
             "Accept-Ranges": "bytes",
         },
     )
-
