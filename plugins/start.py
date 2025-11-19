@@ -29,7 +29,7 @@ async def start(client, message):
     return
 
 
-@Client.on_message(filters.private & (filters.document | filters.video))
+@Client.on_message(filters.private & (filters.document | filters.video | filters.audio | filters.photo))
 async def stream_start(client, message):
     file = getattr(message, message.media.value)
     filename = file.file_name
