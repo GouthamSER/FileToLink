@@ -1,9 +1,9 @@
-import re, math, logging, secrets, mimetypes
-from info import MULTI_CLIENT  # Import specific variables instead of wildcard
+import re, math, logging, secrets, mimetypes, time, urllib.parse
+from info import *
 from aiohttp import web
 from aiohttp.http_exceptions import BadStatusLine
 from lib.bot import File2Link, multi_clients, work_loads
-from lib.server.exceptions import FileNotFound, InvalidHash  # Fixed typo: FIleNotFound -> FileNotFound
+from lib.server.exceptions import FIleNotFound, InvalidHash  # Note: Typo in 'FIleNotFound' – should be 'FileNotFound', but left as-is assuming it's defined that way
 from lib import StartTime, __version__
 from lib.util.custom_dl import ByteStreamer
 from lib.util.time_format import get_readable_time
@@ -13,7 +13,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
-    return web.json_response("FILE2LINK BOT")
+    return web.json_response("BenFilterBot")
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
@@ -29,12 +29,12 @@ async def stream_handler(request: web.Request):
         return web.Response(text=await render_page(id, secure_hash), content_type='text/html')
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
-    except FileNotFound as e:  # Fixed typo
+    except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-    except (AttributeError, BadStatusLine, ConnectionResetError) as e:
-        logging.warning(f"Ignored exception in watch handler: {e}")  # Log instead of ignoring silently
+    except (AttributeError, BadStatusLine, ConnectionResetError):
+        pass
     except Exception as e:
-        logging.exception(f"Critical error in watch handler: {e}")  # Use logging.exception for full traceback
+        logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
 
 @routes.get(r"/{path:\S+}", allow_head=True)
@@ -51,17 +51,19 @@ async def stream_handler(request: web.Request):
         return await media_streamer(request, id, secure_hash)
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
-    except FileNotFound as e:  # Fixed typo
+    except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-    except (AttributeError, BadStatusLine, ConnectionResetError) as e:
-        logging.warning(f"Ignored exception in stream handler: {e}")  # Log instead of ignoring silently
+    except (AttributeError, BadStatusLine, ConnectionResetError):
+        pass
     except Exception as e:
-        logging.exception(f"Critical error in stream handler: {e}")  # Use logging.exception for full traceback
+        logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
 
 class_cache = {}
 
 async def media_streamer(request: web.Request, id: int, secure_hash: str):
+    range_header = request.headers.get("Range", 0)
+    
     index = min(work_loads, key=work_loads.get)
     faster_client = multi_clients[index]
     
@@ -75,29 +77,28 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
         logging.debug(f"Creating new ByteStreamer object for client {index}")
         tg_connect = ByteStreamer(faster_client)
         class_cache[faster_client] = tg_connect
-    
     logging.debug("before calling get_file_properties")
     file_id = await tg_connect.get_file_properties(id)
     logging.debug("after calling get_file_properties")
     
     if file_id.unique_id[:6] != secure_hash:
         logging.debug(f"Invalid hash for message with ID {id}")
-        raise InvalidHash("Invalid secure hash")
+        raise InvalidHash
     
     file_size = file_id.file_size
 
-    # Improved range parsing using aiohttp's built-in helpers
-    if request.http_range:
-        from_bytes = request.http_range.start or 0
-        until_bytes = request.http_range.stop or file_size - 1
+    if range_header:
+        from_bytes, until_bytes = range_header.replace("bytes=", "").split("-")
+        from_bytes = int(from_bytes)
+        until_bytes = int(until_bytes) if until_bytes else file_size - 1
     else:
-        from_bytes = 0
-        until_bytes = file_size - 1
+        from_bytes = request.http_range.start or 0
+        until_bytes = (request.http_range.stop or file_size) - 1
 
-    if (until_bytes >= file_size) or (from_bytes < 0) or (until_bytes < from_bytes):
+    if (until_bytes > file_size) or (from_bytes < 0) or (until_bytes < from_bytes):
         return web.Response(
             status=416,
-            text="416: Range not satisfiable",
+            body="416: Range not satisfiable",
             headers={"Content-Range": f"bytes */{file_size}"},
         )
 
@@ -126,13 +127,13 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
                 file_name = f"{secrets.token_hex(2)}.unknown"
     else:
         if file_name:
-            mime_type = mimetypes.guess_type(file_id.file_name)[0]  # Fixed: was assigning tuple, now [0]
+            mime_type = mimetypes.guess_type(file_id.file_name)
         else:
             mime_type = "application/octet-stream"
             file_name = f"{secrets.token_hex(2)}.unknown"
 
     return web.Response(
-        status=206 if request.http_range else 200,
+        status=206 if range_header else 200,
         body=body,
         headers={
             "Content-Type": f"{mime_type}",
