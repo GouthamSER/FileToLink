@@ -3,6 +3,9 @@ import shutil
 from pyrogram import Client, filters
 from info import ADMINS       # <-- your admin IDs list
 from database.users_chats_db import db
+import os
+import sys
+
 
 @Client.on_message(filters.command("stats") & filters.private)
 async def stats(_, message):
@@ -50,3 +53,13 @@ async def send_two_videos(client, message):
         video="plugins/testvideo/vid1.mp4",
         caption="Look this !!!"
     )
+
+@Client.on_message(filters.command("restart") & filters.private)
+async def restart_bot(client, message):
+
+    if message.from_user.id not in ADMINS:
+        return await message.reply_text("❌ You are not authorized.")
+
+    await message.reply_text("♻️ <b>Bot restarted!</b>")
+
+    os.execv(sys.executable, ['python'] + sys.argv)
