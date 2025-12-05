@@ -74,7 +74,7 @@ You must set the following environment variables. It is best practice to use a `
 | `BOT_TOKEN` | Your Telegram Bot Token obtained from **@BotFather**. | **Required** |
 | `API_ID` | Your Telegram API ID from **my.telegram.org**. | **Required** |
 | `API_HASH` | Your Telegram API HASH from **my.telegram.org**. | **Required** |
-| `BIN_CHANNEL` | ID of the private Telegram channel where the files are permanently stored. The bot **must be an admin** here. | **Required** |
+| `LOG_CHANNEL` | ID of the private Telegram channel where the files are permanently stored. The bot **must be an admin** here. | **Required** |
 | `DATABASE_URI` | MongoDB connection URI for indexing files and storing user data. | **Required** |
 | `ADMINS` | A space-separated list of User IDs for bot administrators. | *Optional* |
 | `LOG_CHANNEL` | ID of a channel for logging bot activity, errors, and status updates. | *Optional* |
