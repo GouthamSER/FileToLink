@@ -28,7 +28,7 @@ from lib.bot.clients import initialize_clients
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 6 * 60 * 60  # 6 Hours
+RESTART_INTERVAL = 3 * 60 * 60  # 6 Hours
 
 File2Link.start()
 loop = asyncio.get_event_loop()
@@ -53,7 +53,7 @@ async def auto_restart():
         now = datetime.now(tz).strftime("%d-%m-%Y | %I:%M:%S %p")
         await File2Link.send_message(
             chat_id=LOG_CHANNEL,
-            text=f"♻️ **Auto Restart Triggered**\n\n⏰ Time: `{now}`\n🕕 Interval: `6 Hours`"
+            text=f"♻️ **Auto Restart Triggered**\n\n⏰ Time: `{now}`\n🕕 Interval: `3 Hours`"
         )
     except Exception as e:
         logging.error(f"Restart message failed: {e}")
@@ -121,3 +121,4 @@ if __name__ == "__main__":
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info("Service Stopped Bye 👋")
+
