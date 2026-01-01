@@ -7,13 +7,12 @@ logging.config.fileConfig('logging.conf')
 logging.getLogger().setLevel(logging.INFO)
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
 logging.getLogger("imdbpy").setLevel(logging.ERROR)
-# REMOVED: logging for aiohttp
-# logging.getLogger("aiohttp").setLevel(logging.ERROR)
-# logging.getLogger("aiohttp.web").setLevel(logging.ERROR)
+logging.getLogger("aiohttp").setLevel(logging.ERROR)
+logging.getLogger("aiohttp.web").setLevel(logging.ERROR)
 
 # ================= IMPORTS =================
 from pyrogram import idle
-# REMOVED: from aiohttp import web
+from aiohttp import web
 
 from database.users_chats_db import db
 from info import *
@@ -29,7 +28,7 @@ from lib.bot.clients import initialize_clients
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 12 * 60 * 60  # 12 Hours
+RESTART_INTERVAL = 3 * 60 * 60  # 3 Hours
 
 File2Link.start()
 loop = asyncio.get_event_loop()
@@ -106,10 +105,9 @@ async def start():
         text=script.RESTART_TXT.format(today, now)
     )
 
-    # REMOVED: Web Server setup and start
-    # app = web.AppRunner(await web_server())
-    # await app.setup()
-    # await web.TCPSite(app, "0.0.0.0", PORT).start()
+     app = web.AppRunner(await web_server())
+     await app.setup()
+     await web.TCPSite(app, "0.0.0.0", PORT).start()
 
     # Start Auto Restart Task
     asyncio.create_task(auto_restart())
@@ -122,3 +120,4 @@ if __name__ == "__main__":
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info("Service Stopped Bye 👋")
+
