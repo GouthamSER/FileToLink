@@ -120,6 +120,9 @@ async def start():
     # Start Auto Restart Task
     asyncio.create_task(auto_restart())
 
+#selfping
+    asyncio.create_task(self_ping_task())
+    
     await idle()
 
 # ================= RUN =================
