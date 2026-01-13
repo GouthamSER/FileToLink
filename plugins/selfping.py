@@ -10,4 +10,4 @@ async def self_ping_task():
                         print("Self-ping successful.")
         except Exception as e:
             print(f"Self-ping failed: {e}")
-        await asyncio.sleep(1200)
+        await asyncio.sleep(300)
