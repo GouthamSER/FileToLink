@@ -4,8 +4,9 @@
 
 **FileToLink** is a powerful and efficient application/bot (likely a Telegram Bot written in Python) designed to instantly convert files uploaded to Telegram into **permanent, direct download and streaming links**. This project is ideal for users looking to quickly share media, documents, or any other file type, leveraging Telegram's robust file storage capabilities to generate rapid-access links.
 ***
+
 ### Deploy in various Apps✔✨<br>
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/deploy-to-koyeb.svg)](https://app.koyeb.com/deploy?type=git&repository=https://github.com/GouthamSER/FileToLink&branch=main)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=https://github.com/GouthamSER/FileToLink&branch=main)
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/GouthamSER/FileToLink)
 ***
@@ -50,12 +51,13 @@ To run this project, you will typically need:
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/GouthamSER/FileToLink](https://github.com/GouthamSER/FileToLink)
+    git clone https://github.com/GouthamSER/FileToLink
     cd FileToLink
     ```
 2.  **Install dependencies:**
     ```bash
     pip3 install -r requirements.txt
+    pip install -r requirements.txt --break-system-packages
     ```
 3.  **Set up configuration** (see next section).
 4.  **Run the bot:**
