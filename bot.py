@@ -1,8 +1,7 @@
 import sys, glob, importlib, logging, logging.config, pytz, asyncio, os
 from pathlib import Path
 from datetime import date, datetime
-from plugins.selfping import self_ping_task # selfping from pligin
-from plugins.error_detection import detect_error,restart_bot #plugins error detecton
+from plugins.selfping import self_ping_task # selfping from plugin
 
 # ================= LOGGING =================
 logging.config.fileConfig('logging.conf')
@@ -32,7 +31,6 @@ files = glob.glob(ppath)
 
 RESTART_INTERVAL = 4 * 60 * 60  # 4 Hours
 
-File2Link.start()
 loop = asyncio.get_event_loop()
 
 # ================= BANNER =================
@@ -64,11 +62,15 @@ async def auto_restart():
 
     # Restart bot using python3 bot.py
     os.execv(sys.executable, ["python3", "bot.py"])
+
 # ================= MAIN =================
 async def start():
     print("\n")
     print_banner()
     print("\nInitializing Your Bot...\n")
+
+    # FIX: Started the client properly inside the async function
+    await File2Link.start()
 
     bot_info = await File2Link.get_me()
     await initialize_clients()
@@ -115,7 +117,7 @@ async def start():
     # Start Auto Restart Task
     asyncio.create_task(auto_restart())
 
-#selfping
+    # selfping
     asyncio.create_task(self_ping_task())
     
     await idle()
@@ -126,10 +128,3 @@ if __name__ == "__main__":
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info("Service Stopped Bye 👋")
-
-
-
-
-
-
-
