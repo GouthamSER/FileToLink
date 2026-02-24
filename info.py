@@ -26,6 +26,27 @@ URL = environ.get("URL", "")
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', ''))
 ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '').split()]
 
+# ===============================
+# Force Subscribe Configuration
+# ===============================
+
+# Multiple channels → separate by comma for usernames / IDs
+FORCE_SUB_CHANNELS = [
+    ch if not ch.isdigit() else int(ch) 
+    for ch in os.environ.get("FORCE_SUB_CHANNELS", "").split(",") if ch
+]
+
+# Private channels invite links (channel ID: invite URL)
+# Example format: -1001234567890=https://t.me/+abcdEFGH1234,-1009876543210=https://t.me/+xyz123
+INVITE_LINKS = {}
+for pair in os.environ.get("INVITE_LINKS", "").split(","):
+    if "=" in pair:
+        k, v = pair.split("=")
+        INVITE_LINKS[int(k)] = v
+
+# Auto delete time (seconds)
+AUTO_DELETE_TIME = int(os.environ.get("AUTO_DELETE_TIME", 30))
+
 # MongoDB information
 DATABASE_URI = environ.get('DATABASE_URI', "")
 DATABASE_NAME = environ.get('DATABASE_NAME', "")
