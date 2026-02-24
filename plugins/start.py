@@ -103,22 +103,3 @@ async def stream_start(client, message):
         await message.reply_text(f"Sorry, an error occurred while generating the link: {str(e)}")
         print(f"Error in stream_start: {e}")  # Replace with logging in production
 
-# ===============================
-# Callback: Recheck Subscription start cmnd 
-# ===============================
-
-@Client.on_callback_query(filters.regex("check_sub"))
-async def check_sub_callback(client, callback_query):
-
-    user_id = callback_query.from_user.id
-    not_joined = await check_force_sub(client, user_id)
-
-    if not_joined:
-        await callback_query.answer(
-            "❌ You have not joined all required channels!",
-            show_alert=True
-        )
-    else:
-        await callback_query.message.edit(
-            "✅ Subscription verified! You can now use the bot."
-        )
