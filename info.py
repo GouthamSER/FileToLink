@@ -30,7 +30,7 @@ ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ
 # Force Subscribe Configuration
 # ===============================
 
-# Multiple channels → separate by comma for usernames / IDs
+# Multiple channels → separate by comma for usernames / IDs if username without @
 FORCE_SUB_CHANNELS = [
     ch if not ch.isdigit() else int(ch) 
     for ch in os.environ.get("FORCE_SUB_CHANNELS", "").split(",") if ch
