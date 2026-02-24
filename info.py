@@ -24,7 +24,8 @@ URL = environ.get("URL", "")
 
 # Admins, Channels & Users
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', ''))
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '').split()]
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for  admin in environ.get('ADMINS', '').split()]
+FSUB_CHANNEL = int(environ.get('FSUB_CHANNEL', '0')) #public channel id -232859845
 
 # MongoDB information
 DATABASE_URI = environ.get('DATABASE_URI', "")
