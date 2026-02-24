@@ -30,24 +30,6 @@ ADMINS = [
     for admin in os.environ.get('ADMINS', '').split()
 ]
 
-# ===============================
-# Force Subscribe Configuration
-# ===============================
-FORCE_SUB_CHANNELS = [
-    int(ch) if ch.lstrip("-").isdigit() else ch
-    for ch in os.environ.get("FORCE_SUB_CHANNELS", "").split(",") if ch
-]
-
-INVITE_LINKS = {}
-for pair in os.environ.get("INVITE_LINKS", "").split(","):
-    if "=" in pair:
-        k, v = pair.split("=")
-        try:
-            INVITE_LINKS[int(k)] = v
-        except ValueError:
-            continue  # skip invalid keys
-
-AUTO_DELETE_TIME = int(os.environ.get("AUTO_DELETE_TIME", 30))
 
 # ===============================
 # MongoDB
