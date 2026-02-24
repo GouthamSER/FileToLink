@@ -4,44 +4,15 @@ from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, FORCE_SUB_CHANNELS, INVITE_LINKS, AUTO_DELETE_TIME
+from info import URL, LOG_CHANNEL, SHORTLINK
 from urllib.parse import quote_plus
 from lib.util.file_properties import get_name, get_hash, get_media_file_size
 from lib.util.human_readable import humanbytes
 from database.users_chats_db import db
-from utils import temp, get_shortlink, check_force_sub
+from utils import temp, get_shortlink
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
-    user_id = message.from_user.id
-    # =========================
-    # Force Subscribe Check
-    # =========================
-    not_joined = await check_force_sub(client, user_id)
-    if not_joined:
-        buttons = []
-        for channel in not_joined:
-            if isinstance(channel, str):  # Public
-                link = f"https://t.me/{channel}"
-            else:  # Private
-                link = INVITE_LINKS.get(channel)
-            if link:
-                buttons.append(
-                    [InlineKeyboardButton("🔔 Join Channel", url=link)]
-                )
-        buttons.append(
-            [InlineKeyboardButton("✅ Try Again", callback_data="check_sub")]
-        )
-        msg = await message.reply(
-            "⚠️ You must join all required channels to use this bot.",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-        await asyncio.sleep(AUTO_DELETE_TIME)
-        await msg.delete()
-        return
-    # =========================
-    # User Passed Force Sub
-    # =========================
     if not await db.is_user_exist(user_id):
         await db.add_user(user_id, message.from_user.first_name)
         await client.send_message(
