@@ -64,35 +64,6 @@ async def start(client, message):
 
 @Client.on_message(filters.private & (filters.document | filters.video | filters.audio | filters.photo))
 async def stream_start(client, message):
-    user_id = message.from_user.id
-    # =========================
-    # Force Subscribe Check
-    # =========================
-    not_joined = await check_force_sub(client, user_id)
-    if not_joined:
-        buttons = []
-        for channel in not_joined:
-            if isinstance(channel, str):  # public
-                link = f"https://t.me/{channel}"
-            else:  # private
-                link = INVITE_LINKS.get(channel)
-            if link:
-                buttons.append([InlineKeyboardButton("🔔 Join Channel", url=link)])
-
-        buttons.append([InlineKeyboardButton("✅ Try Again", callback_data="check_sub")])
-
-        msg = await message.reply(
-            "⚠️ You must join all required channels to use this bot before uploading files.",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-        # Auto delete force sub message
-        await asyncio.sleep(AUTO_DELETE_TIME)
-        await msg.delete()
-        return
-    # =========================
-    # User Passed Force Sub
-    # =========================
     if not await db.is_user_exist(user_id):  # added here if bot not started
         await db.add_user(user_id, message.from_user.first_name)
         await client.send_message(
