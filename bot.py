@@ -29,7 +29,7 @@ from lib.bot.clients import initialize_clients
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 4 * 60 * 60  # 4 Hours
+RESTART_INTERVAL = 3 * 60 * 60  # 3 Hours
 
 loop = asyncio.get_event_loop()
 
@@ -53,12 +53,12 @@ async def auto_restart():
             text=(
                 "♻️ <b>Auto Restart Triggered</b>\n\n"
                 f"⏰ Time: <code>{now}</code>\n"
-                "🕕 Interval: <code>4 Hours</code>"
+                "🕕 Interval: <code>3 Hours</code>"
             )
         )
     except Exception as e:
         logging.error(f"Restart message failed: {e}")
-    logging.info("Restarting bot after 4 hours")
+    logging.info("Restarting bot after 3 hours")
 
     # Restart bot using python3 bot.py
     os.execv(sys.executable, ["python3", "bot.py"])
@@ -128,3 +128,4 @@ if __name__ == "__main__":
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info("Service Stopped Bye 👋")
+
