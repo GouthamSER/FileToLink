@@ -183,7 +183,7 @@ async def stream_start(client, message):
             f"<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{edited_name}</i>\n\n"
             f"<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{humanbytes(get_media_file_size(message))}</i>\n\n"
             f"<b>📥 Download Link: </b><code>{download}</code>\n\n"
-            f"<b>🚸 Nᴏᴛᴇ : ʟɪɴᴋ ᴡᴏɴ'ᴛ ᴇxᴘɪʀᴇ ᴛɪʟʟ ɪ ᴅᴇʟᴇᴛᴇ</b>"
+            f"<b><u>🚸 Nᴏᴛᴇ : Lɪɴᴋ Exᴘɪʀᴇꜱ Iɴ 𝟤𝟦ʜʀꜱ </u></b>"
         )
 
         await message.reply_text(
