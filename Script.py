@@ -1,27 +1,25 @@
 class script(object):
-    START_TXT = """<b>Hey {} 👋</b>
+    START_TXT = """<b>ʜᴇʏ {} 👾</b>
+ɪ'ᴍ <a href='https://t.me/{}'>{}</a> — ʏᴏᴜʀ ᴜʟᴛɪᴍᴀᴛᴇ ꜰɪʟᴇ ʟɪɴᴋ ʙᴏᴛ.
+⚡ <b>ɪɴꜱᴛᴀɴᴛ ᴅɪʀᴇᴄᴛ ᴅᴏᴡɴʟᴏᴀᴅ</b> ʟɪɴᴋꜱ
+🎯 <b>ꜱᴛʀᴇᴀᴍɪɴɢ</b> ʟɪɴᴋꜱ ʀᴇᴀᴅʏ ɪɴ ꜱᴇᴄᴏɴᴅꜱ
+🌐 ꜱʜᴀʀᴇ ᴀɴʏᴡʜᴇʀᴇ, ᴀɴʏᴛɪᴍᴇ, ᴀɴʏᴏɴᴇ
+🔒 ꜱᴀꜰᴇ & ꜱᴇᴄᴜʀᴇ ꜰɪʟᴇ ʜᴀɴᴅʟɪɴɢ
+<blockquote><b>🛸 ʜᴏᴡ ᴛᴏ ᴜꜱᴇ:</b>
+➊ ꜱᴇɴᴅ ᴍᴇ ᴀɴʏ ꜰɪʟᴇ 📂
+➋ ɢᴇᴛ ɪɴꜱᴛᴀɴᴛ ʟɪɴᴋꜱ 🔗
+➌ ꜱʜᴀʀᴇ ꜰʀᴇᴇʟʏ 🚀</blockquote>
+💫 <b>ᴅʀᴏᴘ ᴀ ꜰɪʟᴇ ᴛᴏ ᴋɪᴄᴋꜱᴛᴀʀᴛ!</b>"""
 
-I'm <a href='https://t.me/{}'>{}</a> — your instant file link bot.
+    LOG_TEXT_P = """⭐ #ɴᴇᴡᴜꜱᴇʀ
+🆔 ɪᴅ — <code>{}</code>
+👤 ɴᴀᴍᴇ — {}
+🎉 ᴡᴇʟᴄᴏᴍᴇ ᴀʙᴏᴀʀᴅ!"""
 
-✅ <b>Direct download</b> links
-✅ <b>Streaming</b> links  
-✅ Share anywhere, anytime
-
-<blockquote><b>How to use:</b>
-1. Send me any file
-2. Get instant links
-3. Share freely</blockquote>
-
-🚀 <b>Send a file to start!</b>"""
-
-    LOG_TEXT_P = """#NewUser
-ID - <code>{}</code>
-Nᴀᴍᴇ - {}"""
-    
     RESTART_TXT = """
-<b>Bᴏᴛ Rᴇsᴛᴀʀᴛᴇᴅ !
-
-📅 Dᴀᴛᴇ : <code>{}</code>
-⏰ Tɪᴍᴇ : <code>{}</code>
-🌐 Tɪᴍᴇᴢᴏɴᴇ : <code>Asia/Kolkata</code>
-🛠️ Bᴜɪʟᴅ Sᴛᴀᴛᴜs: <code> [ V1 ]</code></b>"""
+<b>🔄 ʙᴏᴛ ʀᴇꜱᴛᴀʀᴛᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ !
+📅 ᴅᴀᴛᴇ  : <code>{}</code>
+⏰ ᴛɪᴍᴇ  : <code>{}</code>
+🌏 ᴢᴏɴᴇ  : <code>Asia/Kolkata</code>
+🛠️ ꜱᴛᴀᴛᴜꜱ : <code>[ ᴏɴʟɪɴᴇ ✅ ]</code>
+⚙️ ʙᴜɪʟᴅ  : <code>[ V2 🚀 ]</code></b>"""
