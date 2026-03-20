@@ -61,7 +61,7 @@ async def auto_restart():
     logging.info("Restarting bot after 3 hours")
 
     # Restart bot using python3 bot.py
-    os.execv(sys.executable, ["python3", "bot.py"])
+    os.execv(sys.executable, [sys.executable, "bot.py"])
 
 # ================= MAIN =================
 async def start():

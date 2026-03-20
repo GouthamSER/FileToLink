@@ -10,7 +10,7 @@ API_HASH = environ.get('API_HASH', '')
 BOT_TOKEN = environ.get('BOT_TOKEN', "")
 
 # Bot settings
-PORT = environ.get("PORT", "8080")
+PORT = int(environ.get("PORT", "8080"))
 
 # Online Stream and Download
 MULTI_CLIENT = False
@@ -32,6 +32,6 @@ DATABASE_URI = environ.get('DATABASE_URI', "")
 DATABASE_NAME = environ.get('DATABASE_NAME', "")
 
 # Shortlink Info
-SHORTLINK = bool(environ.get('SHORTLINK', False)) # Set True Or False
+SHORTLINK = environ.get('SHORTLINK', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK_URL = environ.get('SHORTLINK_URL', '')
 SHORTLINK_API = environ.get('SHORTLINK_API', '')

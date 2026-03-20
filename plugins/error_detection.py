@@ -57,7 +57,7 @@ async def restart_bot(reason: str):
         logging.error(f"Failed to send restart log: {e}")
 
     await asyncio.sleep(2)
-    os.execv(sys.executable, ["python3", "bot.py"])
+    os.execv(sys.executable, [sys.executable, "bot.py"])
 
 
 async def detect_error(error: Exception, context: str = "Unknown"):
