@@ -31,6 +31,9 @@ FSUB_CHANNEL = int(environ.get('FSUB_CHANNEL', '0')) #public channel id -2328598
 DATABASE_URI = environ.get('DATABASE_URI', "")
 DATABASE_NAME = environ.get('DATABASE_NAME', "")
 
+#FREE SHORTNER
+ISGD = environ.get('ISGD', 'False').strip().lower() in ('true', '1', 'yes')
+
 # Shortlink Info
 SHORTLINK = environ.get('SHORTLINK', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK_URL = environ.get('SHORTLINK_URL', '')
