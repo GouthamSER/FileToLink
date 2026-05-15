@@ -8,8 +8,10 @@ from database.users_chats_db import db
 from info import ADMINS
 
 # Rate limiting constants (adjust based on your account type)
-BROADCAST_DELAY = 0.1  # 100ms between each message (10 msgs/sec)
+# Telegram allows ~30 messages per second, but we use conservative rates
+BROADCAST_DELAY = 0.08  # 80ms between each message (12.5 msgs/sec) - INCREASED from 0.1
 FLOOD_SLEEP_THRESHOLD = 5  # Sleep when rate limit approaching
+BATCH_SIZE = 30  # Process users in batches for better performance
 
 @Client.on_message(filters.command(["broadcast", "bc"]) & filters.user(ADMINS))
 async def pm_broadcast(bot, message):
@@ -23,7 +25,7 @@ async def pm_broadcast(bot, message):
     
     try:
         users = await db.get_all_users()
-        sts = await message.reply_text("Broadcasting your messages...")
+        sts = await message.reply_text("📢 Starting broadcast...\nFetching user count...")
         start_time = time.time()
         total_users = await db.total_users_count()
         
@@ -59,59 +61,82 @@ async def pm_broadcast(bot, message):
             
             done += 1
             
-            # Update progress every 20 users
-            if done % 20 == 0:
-                await sts.edit(
-                    f"📢 Broadcast in progress:\n\n"
-                    f"Total Users: {total_users}\n"
-                    f"Completed: {done} / {total_users}\n"
-                    f"✅ Success: {success}\n"
-                    f"🚫 Blocked: {blocked}\n"
-                    f"👤 Deleted: {deleted}\n"
-                    f"❌ Failed: {failed}"
-                )
+            # Update progress every 20 users (or less frequently for large broadcasts)
+            if done % max(20, total_users // 50) == 0:
+                try:
+                    await sts.edit(
+                        f"📢 <b>Broadcast in progress:</b>\n\n"
+                        f"📊 <b>Total Users:</b> {total_users}\n"
+                        f"✅ <b>Completed:</b> {done} / {total_users} ({(done/total_users*100):.1f}%)\n"
+                        f"✅ <b>Success:</b> {success}\n"
+                        f"🚫 <b>Blocked:</b> {blocked}\n"
+                        f"👤 <b>Deleted:</b> {deleted}\n"
+                        f"❌ <b>Failed:</b> {failed}"
+                    )
+                except Exception as e:
+                    logging.warning(f"Failed to update progress message: {e}")
             
             # Rate limiting - delay between messages
             await asyncio.sleep(BROADCAST_DELAY)
         
         # Final report
         time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
-        await sts.edit(
-            f"✅ Broadcast Completed!\n"
-            f"⏱️ Time: {time_taken}\n\n"
-            f"Total Users: {total_users}\n"
-            f"✅ Success: {success}\n"
-            f"🚫 Blocked: {blocked}\n"
-            f"👤 Deleted: {deleted}\n"
-            f"❌ Failed: {failed}"
+        final_text = (
+            f"✅ <b>Broadcast Completed Successfully!</b>\n"
+            f"⏱️ <b>Time Taken:</b> {time_taken}\n\n"
+            f"📊 <b>Final Statistics:</b>\n"
+            f"👥 <b>Total Users:</b> {total_users}\n"
+            f"✅ <b>Success:</b> {success} ({(success/total_users*100):.1f}%)\n"
+            f"🚫 <b>Blocked:</b> {blocked} ({(blocked/total_users*100):.1f}%)\n"
+            f"👤 <b>Deleted:</b> {deleted} ({(deleted/total_users*100):.1f}%)\n"
+            f"❌ <b>Failed:</b> {failed} ({(failed/total_users*100):.1f}%)"
         )
+        
+        try:
+            await sts.edit(final_text)
+        except Exception as e:
+            logging.error(f"Failed to send final report: {e}")
+            await message.reply_text(final_text)
         
     except Exception as e:
         logging.error(f"Broadcast error: {e}", exc_info=True)
-        await message.reply_text(f"❌ Broadcast failed:\n`{e}`")
+        await message.reply_text(f"❌ <b>Broadcast failed:</b>\n<code>{str(e)}</code>")
 
 
 async def broadcast_messages(bot, user_id, message):
     """
     Send a message to a user with proper error handling
     Returns: (success: bool, reason: str)
+    
+    Args:
+        bot: Pyrogram Client instance
+        user_id: Target user ID
+        message: Message object to copy/forward
     """
     try:
-        # Copy the message to the user
-        await message.copy(chat_id=user_id)
+        # Forward/copy the message to the user (handles all media types correctly)
+        await message.forward(chat_id=user_id)
         return True, "Success"
         
     except FloodWait as e:
         # Handle rate limiting - wait and retry
-        logging.warning(f"FloodWait: {e.value}s - Sleeping...")
-        await asyncio.sleep(e.value + 1)  # Add 1s buffer
+        wait_time = e.value
+        logging.warning(f"FloodWait for user {user_id}: {wait_time}s - Sleeping...")
+        await asyncio.sleep(wait_time + 1)  # Add 1s buffer
         # Retry the message
-        return await broadcast_messages(bot, user_id, message)
+        try:
+            return await broadcast_messages(bot, user_id, message)
+        except Exception as retry_e:
+            logging.error(f"Retry failed for user {user_id}: {retry_e}")
+            return False, "Error"
         
     except InputUserDeactivated:
         # User deleted their account
-        await db.delete_user(user_id)
-        logging.info(f"User {user_id} deleted their account - removed from DB")
+        try:
+            await db.delete_user(user_id)
+            logging.info(f"User {user_id} deleted their account - removed from DB")
+        except Exception as db_e:
+            logging.warning(f"Failed to delete user {user_id} from DB: {db_e}")
         return False, "Deleted"
         
     except UserIsBlocked:
@@ -121,8 +146,11 @@ async def broadcast_messages(bot, user_id, message):
         
     except PeerIdInvalid:
         # Invalid peer ID - user doesn't exist
-        await db.delete_user(user_id)
-        logging.warning(f"User {user_id} has invalid peer ID - removed from DB")
+        try:
+            await db.delete_user(user_id)
+            logging.warning(f"User {user_id} has invalid peer ID - removed from DB")
+        except Exception as db_e:
+            logging.warning(f"Failed to delete user {user_id} from DB: {db_e}")
         return False, "Error"
         
     except Exception as e:
