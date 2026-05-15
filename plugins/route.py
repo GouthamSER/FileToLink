@@ -14,7 +14,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
-    return web.json_response("I AM ALive BABy")
+    return web.json_response({"status": "I AM ALIVE BABY", "version": __version__})
 
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
@@ -36,9 +36,11 @@ async def stream_handler(request: web.Request):
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
     except (AttributeError, BadStatusLine, ConnectionResetError):
+        # Silent fail for these transient errors
         pass
     except Exception as e:
-        logging.critical(e.with_traceback(None))
+        # Fixed: Use exc_info=True instead of e.with_traceback(None)
+        logging.critical(f"Stream handler error: {e}", exc_info=True)
         raise web.HTTPInternalServerError(text=str(e))
 
 
@@ -59,9 +61,11 @@ async def download_handler(request: web.Request):
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
     except (AttributeError, BadStatusLine, ConnectionResetError):
+        # Silent fail for these transient errors
         pass
     except Exception as e:
-        logging.critical(e.with_traceback(None))
+        # Fixed: Use exc_info=True instead of e.with_traceback(None)
+        logging.critical(f"Download handler error: {e}", exc_info=True)
         raise web.HTTPInternalServerError(text=str(e))
 
 
