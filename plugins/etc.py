@@ -49,8 +49,8 @@ async def stats(client: Client, message: Message):
         # Send "Processing..." message
         status_msg = await message.reply_text("📊 Fetching statistics...")
         
-        # Get system uptime
-        sys_uptime = await asyncio.to_thread(psutil.boot_time)
+        # Get system uptime - FIXED: boot_time() is not async, doesn't need await
+        sys_uptime = psutil.boot_time()
         sys_uptime_str = get_readable_time(int(time.time() - sys_uptime))
         
         # Get bot uptime
@@ -110,6 +110,7 @@ async def stats(client: Client, message: Message):
         )
         
     except Exception as e:
+        logging.error(f"Stats command error: {e}", exc_info=True)
         await message.reply_text(f"❌ <b>Error:</b> <code>{str(e)}</code>")
 
 # Callback query handler for refresh and close buttons
@@ -127,7 +128,7 @@ async def stats_callback(client: Client, callback_query):
         
         try:
             # Get all stats again (same as above)
-            sys_uptime = await asyncio.to_thread(psutil.boot_time)
+            sys_uptime = psutil.boot_time()
             sys_uptime_str = get_readable_time(int(time.time() - sys_uptime))
             bot_uptime_str = get_readable_time(int(time.time() - StartTime))
             net_io_counters = await asyncio.to_thread(psutil.net_io_counters)
@@ -173,17 +174,24 @@ async def stats_callback(client: Client, callback_query):
             )
             
         except Exception as e:
+            import logging
+            logging.error(f"Stats refresh error: {e}", exc_info=True)
             await callback_query.answer(f"❌ Error: {str(e)}", show_alert=True)
 
 # VIDEO SENDING HOW IT WORKS
 @Client.on_message(filters.private & filters.command("how"))
 async def send_two_videos(client, message):
     # First video
-    await client.send_video(
-        chat_id=message.chat.id,
-        video="plugins/testvideo/vid1.mp4",
-        caption="Look this !!!"
-    )
+    try:
+        await client.send_video(
+            chat_id=message.chat.id,
+            video="plugins/testvideo/vid1.mp4",
+            caption="Look this !!!"
+        )
+    except Exception as e:
+        import logging
+        logging.error(f"Error sending video: {e}")
+        await message.reply_text(f"❌ Error sending video: {str(e)}")
 
 # RESTART BOT COMMAND
 @Client.on_message(filters.command("restart") & filters.private)
