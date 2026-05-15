@@ -57,8 +57,9 @@ async def auto_restart():
     try:
         tz = pytz.timezone("Asia/Kolkata")
         now = datetime.now(tz).strftime("%d-%m-%Y | %I:%M:%S %p")
+        # Use temp.BOT which is set after bot initialization
         await safe_send(
-            File2Link,
+            temp.BOT,
             LOG_CHANNEL,
             (
                 "♻️ <b>Auto Restart Triggered</b>\n\n"
