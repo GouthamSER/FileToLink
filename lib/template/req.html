@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{file_name}} | Video Player</title>
+<link rel="icon" href="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
+<meta property="og:title" content="{{file_name}}">
+<meta property="og:image" content="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
+<meta property="og:description" content="Watch {{file_name}} — stream or download instantly.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.plyr.io/3.6.9/plyr.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{--bg:#080b10;--card:#131922;--border:rgba(255,255,255,.07);--gold:#f0b429;--gold2:#ffd166;--text:#e8edf5;--muted:#6b7a99;--r:14px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.18;pointer-events:none;z-index:0;animation:drift 14s ease-in-out infinite alternate}
+.orb1{width:500px;height:500px;background:#f0b429;top:-150px;left:-150px;animation-duration:16s}
+.orb2{width:400px;height:400px;background:#3b82f6;bottom:-100px;right:-100px;animation-duration:20s;animation-delay:-6s}
+.orb3{width:300px;height:300px;background:#a855f7;top:40%;left:50%;animation-duration:12s;animation-delay:-3s}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(30px,20px) scale(1.05)}}
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:24px 16px 60px}
+.site-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:28px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pdot 2s ease-in-out infinite}
+@keyframes pdot{0%,100%{box-shadow:0 0 8px var(--gold)}50%{box-shadow:0 0 20px var(--gold)}}
+.hcopy{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
+.hcopy:hover{background:rgba(240,180,41,.12);color:var(--gold);border-color:var(--gold)}
+.file-title{font-size:clamp(1rem,2.5vw,1.35rem);font-weight:600;letter-spacing:-.02em;line-height:1.4;word-break:break-word;margin-bottom:6px}
+.meta-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.bp{font-size:.7rem;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:999px;letter-spacing:.04em;font-weight:500}
+.bp-s{background:rgba(240,180,41,.15);color:var(--gold);border:1px solid rgba(240,180,41,.3)}
+.bp-h{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+.bp-k{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
+.player-card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px rgba(240,180,41,.12);margin-bottom:20px;transition:box-shadow .3s}
+.player-card:hover{box-shadow:0 28px 70px rgba(0,0,0,.6),0 0 60px rgba(240,180,41,.16)}
+.plyr{border-radius:0}
+.plyr--video .plyr__controls{background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.plyr__control--overlaid{background:var(--gold)!important}
+.plyr__control--overlaid:hover{background:var(--gold2)!important}
+.plyr--full-ui input[type=range]{color:var(--gold)}
+.speed-strip{display:flex;align-items:center;gap:8px;padding:14px 18px;border-top:1px solid var(--border);background:rgba(255,255,255,.02);flex-wrap:wrap}
+.slbl{font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:4px}
+.sbtn,.pip-btn{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .18s}
+.sbtn:hover,.sbtn.active{background:rgba(240,180,41,.15);color:var(--gold);border-color:rgba(240,180,41,.4)}
+.pip-btn{margin-left:auto;display:flex;align-items:center;gap:5px}
+.pip-btn:hover{background:rgba(59,130,246,.12);color:#60a5fa;border-color:rgba(59,130,246,.35)}
+.actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
+.ab{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 10px;border-radius:var(--r);font-size:.82rem;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .18s,box-shadow .18s,background .18s;position:relative;overflow:hidden}
+.ab::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08),transparent 60%);pointer-events:none}
+.ab:hover{transform:translateY(-2px)}.ab:active{transform:translateY(0)}
+.b-vlc{background:#1d2230;border-color:rgba(255,106,0,.35);color:#ff6a00}.b-vlc:hover{background:rgba(255,106,0,.15);box-shadow:0 8px 24px rgba(255,106,0,.2)}
+.b-mx{background:#1a2218;border-color:rgba(34,197,94,.3);color:#4ade80}.b-mx:hover{background:rgba(34,197,94,.12);box-shadow:0 8px 24px rgba(34,197,94,.15)}
+.b-pl{background:#211c10;border-color:rgba(251,191,36,.3);color:#fbbf24}.b-pl:hover{background:rgba(251,191,36,.12);box-shadow:0 8px 24px rgba(251,191,36,.15)}
+.b-km{background:#12182a;border-color:rgba(96,165,250,.3);color:#60a5fa}.b-km:hover{background:rgba(96,165,250,.1);box-shadow:0 8px 24px rgba(96,165,250,.15)}
+.b-sp{background:#1e1528;border-color:rgba(167,139,250,.3);color:#a78bfa}.b-sp:hover{background:rgba(167,139,250,.1);box-shadow:0 8px 24px rgba(167,139,250,.15)}
+.b-dl{background:linear-gradient(135deg,#f0b429,#e09000);border-color:transparent;color:#080b10;font-weight:700}.b-dl:hover{box-shadow:0 8px 30px rgba(240,180,41,.4);filter:brightness(1.08)}
+.info-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ii{display:flex;flex-direction:column;gap:2px}
+.ii .lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.ii .val{font-size:.82rem;font-weight:600;font-family:'JetBrains Mono',monospace}
+.idiv{width:1px;height:36px;background:var(--border)}
+.clr{margin-left:auto}
+.clbtn{background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.3);border-radius:8px;padding:8px 16px;color:var(--gold);font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;white-space:nowrap}
+.clbtn:hover{background:rgba(240,180,41,.2);box-shadow:0 4px 16px rgba(240,180,41,.2)}
+.hk-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 22px;margin-bottom:20px}
+.hk-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hk-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.hk{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
+.kbd{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-bottom-width:2px;border-radius:5px;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text);min-width:28px;text-align:center}
+.site-footer{text-align:center;font-size:.72rem;color:var(--muted);padding-top:10px;font-family:'JetBrains Mono',monospace}
+.site-footer a{color:var(--gold);text-decoration:none}
+.toast-wrap{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none}
+.tp{background:rgba(7,9,15,.95);border:1px solid var(--border);backdrop-filter:blur(12px);border-radius:999px;padding:10px 22px;font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:9px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transform:translateY(12px);transition:opacity .25s,transform .25s}
+.tp.show{opacity:1;transform:translateY(0)}
+.ti{color:var(--gold)}
+@media(max-width:600px){.actions-grid{grid-template-columns:repeat(2,1fr)}.info-panel{flex-direction:column;align-items:flex-start;gap:12px}.clr{margin-left:0}.idiv{display:none}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+<div class="wrap">
+  <header class="site-header">
+    <div class="brand"><div class="brand-dot"></div>File2Link by Goutham Josh</div>
+    <button class="hcopy" onclick="copyLink()"><i class="fa-solid fa-link"></i> Copy Link</button>
+  </header>
+  <div class="file-title">{{file_name}}</div>
+  <div class="meta-row">
+    <span class="bp bp-s"><i class="fa-solid fa-circle-play" style="margin-right:4px"></i>Stream Ready</span>
+    <span class="bp bp-h">HD</span>
+    <span class="bp bp-k"><i class="fa-solid fa-shield-halved" style="margin-right:4px"></i>Secure</span>
+  </div>
+  <div class="player-card">
+    <video id="player" playsinline controls preload="metadata">
+      <source src="{{file_url}}" type="video/mp4">
+    </video>
+    <div class="speed-strip">
+      <span class="slbl">SPEED</span>
+      <button class="sbtn" onclick="setSpeed(0.5)">0.5×</button>
+      <button class="sbtn active" onclick="setSpeed(1)">1×</button>
+      <button class="sbtn" onclick="setSpeed(1.25)">1.25×</button>
+      <button class="sbtn" onclick="setSpeed(1.5)">1.5×</button>
+      <button class="sbtn" onclick="setSpeed(2)">2×</button>
+      <button class="pip-btn" onclick="togglePiP()"><i class="fa-solid fa-window-restore"></i> PiP</button>
+    </div>
+  </div>
+  <div class="info-panel">
+    <div class="ii"><span class="lbl">Duration</span><span class="val" id="dur-val">—</span></div>
+    <div class="idiv"></div>
+    <div class="ii"><span class="lbl">Resolution</span><span class="val" id="res-val">—</span></div>
+    <div class="idiv"></div>
+    <div class="ii"><span class="lbl">Format</span><span class="val">MP4</span></div>
+    <div class="idiv"></div>
+    <div class="ii"><span class="lbl">Status</span><span class="val" id="status-val" style="color:#4ade80">Ready</span></div>
+    <div class="clr"><button class="clbtn" onclick="copyVideoUrl()"><i class="fa-solid fa-copy"></i> Copy Video URL</button></div>
+  </div>
+  <div class="actions-grid">
+    <button class="ab b-vlc" onclick="vlc_player()"><i class="fa-solid fa-circle-play"></i> VLC Player</button>
+    <button class="ab b-mx" onclick="mx_player()"><i class="fa-solid fa-mobile-screen-button"></i> MX Player</button>
+    <button class="ab b-pl" onclick="playit_player()"><i class="fa-solid fa-bolt"></i> PlayIt</button>
+    <button class="ab b-km" onclick="km_player()"><i class="fa-solid fa-film"></i> KM Player</button>
+    <button class="ab b-sp" onclick="s_player()"><i class="fa-solid fa-play"></i> Simple Player</button>
+    <button class="ab b-dl" onclick="lazyDownload()"><i class="fa-solid fa-cloud-arrow-down"></i> Download</button>
+  </div>
+  <div class="hk-panel">
+    <div class="hk-title">Keyboard Shortcuts</div>
+    <div class="hk-grid">
+      <div class="hk"><span class="kbd">Space</span> Play / Pause</div>
+      <div class="hk"><span class="kbd">F</span> Fullscreen</div>
+      <div class="hk"><span class="kbd">M</span> Mute / Unmute</div>
+      <div class="hk"><span class="kbd">←</span><span class="kbd">→</span> Seek 5s</div>
+      <div class="hk"><span class="kbd">↑</span><span class="kbd">↓</span> Volume</div>
+      <div class="hk"><span class="kbd">P</span> Picture-in-Picture</div>
+    </div>
+  </div>
+  <footer class="site-footer">Powered by <a href="https://t.me/file2linkkuttu_bot">File2Link</a> · Files hosted on Telegram by Goutham SER</footer>
+</div>
+<div class="toast-wrap"><div class="tp" id="toast"><i class="fa-solid fa-check ti" id="ti"></i><span id="tm">Copied!</span></div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.plyr.io/3.6.9/plyr.polyfilled.js"></script>
+<script>
+const U="{{file_url}}",vid=document.getElementById('player'),sv=document.getElementById('status-val');
+new Plyr('#player',{speed:{selected:1,options:[.5,.75,1,1.25,1.5,2]},keyboard:{focused:true,global:true},tooltips:{controls:true,seek:true}});
+vid.addEventListener('loadedmetadata',()=>{
+  const s=Math.floor(vid.duration),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  document.getElementById('dur-val').textContent=(h?h+'h ':'')+( m?m+'m ':'')+sc+'s';
+  if(vid.videoWidth)document.getElementById('res-val').textContent=vid.videoWidth+'×'+vid.videoHeight;
+});
+vid.addEventListener('playing',()=>{sv.textContent='● Playing';sv.style.color='#4ade80'});
+vid.addEventListener('pause',()=>{sv.textContent='Paused';sv.style.color='#fbbf24'});
+vid.addEventListener('waiting',()=>{sv.textContent='Buffering…';sv.style.color='#60a5fa'});
+function setSpeed(s){vid.playbackRate=s;document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active')}
+async function togglePiP(){
+  if(!document.pictureInPictureEnabled)return showToast('PiP not supported','fa-circle-xmark');
+  document.pictureInPictureElement?await document.exitPictureInPicture():(await vid.requestPictureInPicture(),showToast('PiP enabled'));
+}
+const go=u=>location.href=u;
+function vlc_player(){go(`vlc://${U}`)}
+function mx_player(){go(`intent:${U}#Intent;package=com.mxtech.videoplayer.ad;end`)}
+function playit_player(){go(`intent:${U}#Intent;package=com.playit.videoplayer;end`)}
+function km_player(){go(`intent:${U}#Intent;package=com.kmplayer;end`)}
+function s_player(){go(`intent:${U}#Intent;package=com.simplemobiletools.videoplayer;end`)}
+function lazyDownload(){showToast('Download started…','fa-cloud-arrow-down');const a=document.createElement('a');a.href=U;a.download='';document.body.appendChild(a);a.click();a.remove()}
+function copyLink(){navigator.clipboard.writeText(location.href).then(()=>showToast('Page link copied!'))}
+function copyVideoUrl(){navigator.clipboard.writeText(U).then(()=>showToast('Video URL copied!'))}
+let tt;
+function showToast(msg,icon='fa-check'){
+  const t=document.getElementById('toast');
+  document.getElementById('tm').textContent=msg;
+  document.getElementById('ti').className=`fa-solid ${icon} ti`;
+  t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
+  e.key.toLowerCase()==='p'&&togglePiP();
+  e.key.toLowerCase()==='c'&&copyVideoUrl();
+});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+</script>
+</body>
+</html>
+
