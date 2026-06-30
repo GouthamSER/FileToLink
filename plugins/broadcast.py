@@ -7,7 +7,11 @@ from info import ADMINS
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def pm_broadcast(bot, message):
-    b_msg = await bot.ask(chat_id = message.from_user.id, text = "Now Send Me Your Broadcast Message")
+    if not message.reply_to_message:
+        return await message.reply_text(
+            "Reply to a message with /broadcast to send it to all users."
+        )
+    b_msg = message.reply_to_message
     try:
         users = await db.get_all_users()
         sts = await message.reply_text('Broadcasting your messages...')
@@ -45,9 +49,8 @@ async def pm_broadcast(bot, message):
     except Exception as e:
         print(f"error: {e}")
 
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
+# Don't Remove Credit Tg - @GouthamSER
+# Ask Doubt on telegram @m_goutham_josh
 
 async def broadcast_messages(user_id, message):
     try:
@@ -69,4 +72,3 @@ async def broadcast_messages(user_id, message):
         return False, "Error"
     except Exception as e:
         return False, "Error"
-
