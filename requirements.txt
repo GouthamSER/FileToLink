@@ -1,6 +1,6 @@
 pyrotgfork
 tgcrypto
-aiohttp
+aiohttp[speedups]
 python-dotenv<=0.20.0
 motor
 aiofiles
