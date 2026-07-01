@@ -114,8 +114,18 @@ async def start():
     await app.setup()
     await web.TCPSite(app, "0.0.0.0", PORT).start()
 
-    # Start Auto Restart Task
-    asyncio.create_task(auto_restart())
+    # ================= AUTO RESTART CHECK =================
+    if AUTO_RESTART:
+        hours = RESTART_INTERVAL // 3600
+        msg = f"Auto Restart: ON | Interval: {hours} Hours"
+        print(f"🔄 {msg}")
+        logging.info(msg)
+        asyncio.create_task(auto_restart())
+    else:
+        msg = "Auto Restart: OFF"
+        print(f"⏸️ {msg}")
+        logging.info(msg)
+    # ======================================================
 
     # selfping
     asyncio.create_task(self_ping_task())
@@ -128,4 +138,3 @@ if __name__ == "__main__":
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info("Service Stopped Bye 👋")
-
