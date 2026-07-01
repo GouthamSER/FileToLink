@@ -29,7 +29,7 @@ from lib.bot.clients import initialize_clients
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 3 * 60 * 60  # 3 Hours
+RESTART_INTERVAL = 12 * 60 * 60  # 12 Hours
 
 loop = asyncio.get_event_loop()
 
