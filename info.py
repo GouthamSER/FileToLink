@@ -17,6 +17,9 @@ if not API_ID or not API_HASH or not BOT_TOKEN:
 # Bot settings
 PORT = int(environ.get("PORT", "8080"))
 
+# Returns True if set to "True", "true", "1", or "yes". Otherwise False.
+AUTO_RESTART = os.environ.get("AUTO_RESTART", "True").lower() in ["true", "1", "yes"]
+
 # Online Stream and Download
 MULTI_CLIENT = False
 SLEEP_THRESHOLD = int(environ.get('SLEEP_THRESHOLD', '60'))
