@@ -1,3 +1,4 @@
+import mimetypes
 from pyrogram import Client
 from typing import Any, Optional
 from pyrogram.types import Message
@@ -23,9 +24,23 @@ async def get_file_ids(client: Client, chat_id: int, id: int) -> Optional[FileId
     media = get_media_from_message(message)
     file_unique_id = await parse_file_unique_id(message)
     file_id = await parse_file_id(message)
+    mime_type = getattr(media, "mime_type", "") or ""
+    # media.file_name can exist as an actual None (photos, voice notes, video
+    # notes, some videos) rather than being absent, so getattr's default
+    # doesn't help - guard explicitly and synthesize a name.
+    file_name = getattr(media, "file_name", None) or None
+    if not file_name:
+        ext = mimetypes.guess_extension(mime_type) or ""
+        if not ext and mime_type.startswith("video"):
+            ext = ".mp4"
+        elif not ext and mime_type.startswith("audio"):
+            ext = ".mp3"
+        elif not ext and mime_type.startswith("image"):
+            ext = ".jpg"
+        file_name = f"file_{file_unique_id or id}{ext}"
     setattr(file_id, "file_size", getattr(media, "file_size", 0))
-    setattr(file_id, "mime_type", getattr(media, "mime_type", ""))
-    setattr(file_id, "file_name", getattr(media, "file_name", ""))
+    setattr(file_id, "mime_type", mime_type)
+    setattr(file_id, "file_name", file_name)
     setattr(file_id, "unique_id", file_unique_id)
     return file_id
 
@@ -52,11 +67,8 @@ def get_hash(media_msg: Message) -> str:
 
 def get_name(media_msg: Message) -> str:
     media = get_media_from_message(media_msg)
-    return getattr(media, 'file_name', "")
+    return getattr(media, 'file_name', None) or ""
 
 def get_media_file_size(m):
     media = get_media_from_message(m)
     return getattr(media, "file_size", 0)
-
-
-
