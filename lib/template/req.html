@@ -42,22 +42,12 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
 .plyr__control--overlaid{background:var(--gold)!important}
 .plyr__control--overlaid:hover{background:var(--gold2)!important}
 .plyr--full-ui input[type=range]{color:var(--gold)}
-.video-box{position:relative;width:100%;height:min(60vh,480px);background:#000;overflow:hidden}
-.video-box video{width:100%;height:100%;display:block;background:#000;object-fit:contain}
-.video-box video.of-cover{object-fit:cover;object-position:center}
-.video-box video.of-contain{object-fit:contain}
-.video-box video.of-none{object-fit:none;object-position:center}
 .speed-strip{display:flex;align-items:center;gap:8px;padding:14px 18px;border-top:1px solid var(--border);background:rgba(255,255,255,.02);flex-wrap:wrap}
 .slbl{font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:4px}
-.sbtn,.pip-btn,.track-select{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .18s}
+.sbtn,.pip-btn{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .18s}
 .sbtn:hover,.sbtn.active{background:rgba(240,180,41,.15);color:var(--gold);border-color:rgba(240,180,41,.4)}
 .pip-btn{margin-left:auto;display:flex;align-items:center;gap:5px}
 .pip-btn:hover{background:rgba(59,130,246,.12);color:#60a5fa;border-color:rgba(59,130,246,.35)}
-.track-select{color:var(--text);max-width:150px}
-.track-select:hover{border-color:rgba(240,180,41,.4)}
-.cc-btn{display:flex;align-items:center;gap:5px}
-.cc-btn.active{background:rgba(240,180,41,.15);color:var(--gold);border-color:rgba(240,180,41,.4)}
-.hidden-strip{display:none!important}
 .actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
 .ab{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 10px;border-radius:var(--r);font-size:.82rem;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .18s,box-shadow .18s,background .18s;position:relative;overflow:hidden}
 .ab::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08),transparent 60%);pointer-events:none}
@@ -106,11 +96,9 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
     <span class="bp bp-k"><i class="fa-solid fa-shield-halved" style="margin-right:4px"></i>Secure</span>
   </div>
   <div class="player-card">
-    <div class="video-box">
-      <video id="player" class="of-contain" playsinline controls preload="metadata">
-        <source src="{{file_url}}" type="video/mp4">
-      </video>
-    </div>
+    <video id="player" playsinline controls preload="metadata">
+      <source src="{{file_url}}" type="video/mp4">
+    </video>
     <div class="speed-strip">
       <span class="slbl">SPEED</span>
       <button class="sbtn" onclick="setSpeed(0.5)">0.5×</button>
@@ -119,21 +107,6 @@ body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-he
       <button class="sbtn" onclick="setSpeed(1.5)">1.5×</button>
       <button class="sbtn" onclick="setSpeed(2)">2×</button>
       <button class="pip-btn" onclick="togglePiP()"><i class="fa-solid fa-window-restore"></i> PiP</button>
-    </div>
-    <div class="speed-strip">
-      <span class="slbl">SCREEN</span>
-      <button class="sbtn" onclick="setFit('cover',event)"><i class="fa-solid fa-expand"></i> Fill Screen</button>
-      <button class="sbtn" onclick="setFit('none',event)"><i class="fa-solid fa-crop-simple"></i> Center</button>
-      <button class="sbtn active" onclick="setFit('contain',event)"><i class="fa-solid fa-compress"></i> Fit Screen</button>
-    </div>
-    <div class="speed-strip hidden-strip" id="audio-strip">
-      <span class="slbl">AUDIO</span>
-      <select class="track-select" id="audio-select" onchange="setAudioTrack(this.value)"></select>
-    </div>
-    <div class="speed-strip hidden-strip" id="cc-strip">
-      <span class="slbl">SUBTITLES</span>
-      <select class="track-select" id="cc-select" onchange="setCaptionTrack(this.value)"></select>
-      <button class="sbtn cc-btn active" id="cc-toggle" onclick="toggleCaptions()"><i class="fa-solid fa-closed-captioning"></i> CC</button>
     </div>
   </div>
   <div class="info-panel">
@@ -182,66 +155,6 @@ vid.addEventListener('playing',()=>{sv.textContent='● Playing';sv.style.color=
 vid.addEventListener('pause',()=>{sv.textContent='Paused';sv.style.color='#fbbf24'});
 vid.addEventListener('waiting',()=>{sv.textContent='Buffering…';sv.style.color='#60a5fa'});
 function setSpeed(s){vid.playbackRate=s;document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active')}
-function setFit(mode,e){
-  vid.classList.remove('of-cover','of-contain','of-none');
-  vid.classList.add(mode==='cover'?'of-cover':mode==='none'?'of-none':'of-contain');
-  e.currentTarget.parentElement.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));
-  e.currentTarget.classList.add('active');
-}
-function setupAudioTracks(){
-  const list=vid.audioTracks;
-  if(!list||list.length<2)return;
-  const strip=document.getElementById('audio-strip'),sel=document.getElementById('audio-select');
-  sel.innerHTML='';
-  for(let i=0;i<list.length;i++){
-    const t=list[i];
-    const opt=document.createElement('option');
-    opt.value=i;
-    opt.textContent=t.label||t.language||`Track ${i+1}`;
-    if(t.enabled)opt.selected=true;
-    sel.appendChild(opt);
-  }
-  strip.classList.remove('hidden-strip');
-}
-function setAudioTrack(idx){
-  const list=vid.audioTracks;
-  if(!list)return;
-  idx=parseInt(idx,10);
-  for(let i=0;i<list.length;i++)list[i].enabled=(i===idx);
-  showToast(`Audio track ${idx+1} selected`,'fa-volume-high');
-}
-let ccEnabled=true;
-function setupCaptionTracks(){
-  const list=vid.textTracks;
-  if(!list||list.length<1)return;
-  const strip=document.getElementById('cc-strip'),sel=document.getElementById('cc-select');
-  sel.innerHTML='';
-  for(let i=0;i<list.length;i++){
-    const t=list[i];
-    t.mode='hidden';
-    const opt=document.createElement('option');
-    opt.value=i;
-    opt.textContent=t.label||t.language||`CC ${i+1}`;
-    sel.appendChild(opt);
-  }
-  list[0].mode='showing';
-  strip.classList.remove('hidden-strip');
-}
-function setCaptionTrack(idx){
-  const list=vid.textTracks;
-  if(!list)return;
-  idx=parseInt(idx,10);
-  for(let i=0;i<list.length;i++)list[i].mode=(i===idx&&ccEnabled)?'showing':'hidden';
-}
-function toggleCaptions(){
-  ccEnabled=!ccEnabled;
-  const sel=document.getElementById('cc-select'),btn=document.getElementById('cc-toggle');
-  btn.classList.toggle('active',ccEnabled);
-  setCaptionTrack(sel.value||0);
-  showToast(ccEnabled?'Subtitles on':'Subtitles off','fa-closed-captioning');
-}
-vid.addEventListener('loadedmetadata',setupAudioTracks);
-vid.addEventListener('loadedmetadata',setupCaptionTracks);
 async function togglePiP(){
   if(!document.pictureInPictureEnabled)return showToast('PiP not supported','fa-circle-xmark');
   document.pictureInPictureElement?await document.exitPictureInPicture():(await vid.requestPictureInPicture(),showToast('PiP enabled'));
@@ -270,4 +183,4 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('contextmenu',e=>e.preventDefault());
 </script>
 </body>
-</html>
+        </html>
