@@ -125,3 +125,5 @@ plugins/                     command handlers (start, route, broadcast, stats, e
 | `MULTI_CLIENT` flag was set on a local var and never reached the route handler — multi-client logging never fired | Route now checks live client count directly |
 | `detect_error()` (auto-restart on network errors) was defined but never called anywhere | Hooked into the route handlers' exception path |
 | `info.py` crashed with a bare `ValueError` traceback if `API_ID`/`LOG_CHANNEL` were missing | Now exits with a clear error message |
+| Every plugin handler ran **twice** — Client was set to auto-load `plugins/` (pyrogram's `plugins={"root":"plugins"}`) *and* `bot.py` manually re-imported every file in `plugins/*.py` | Removed the auto-load, kept only the manual loader → `/start`, stream links, `/stats`, `/broadcast` etc. now fire once |
+| `info.py`'s `id_pattern` regex (`^.\d+$`) failed to match single-digit admin IDs | Fixed to `^\d+$` |
