@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: filetolink
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: LOG_CHANNEL
+        sync: false
+      - key: DATABASE_URI
+        sync: false
+      - key: DATABASE_NAME
+        sync: false
+      - key: URL
+        sync: false
+      - key: ADMINS
+        sync: false
+      - key: FSUB_CHANNEL
+        value: "0"
+      - key: PORT
+        value: "8080"
+      - key: SLEEP_THRESHOLD
+        value: "60"
+      - key: PING_INTERVAL
+        value: "1200"
+      - key: AUTO_RESTART
+        value: "True"
+      - key: SHORTLINK
+        value: "False"
+      - key: ISGD
+        value: "False"
