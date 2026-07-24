@@ -127,3 +127,7 @@ plugins/                     command handlers (start, route, broadcast, stats, e
 | `info.py` crashed with a bare `ValueError` traceback if `API_ID`/`LOG_CHANNEL` were missing | Now exits with a clear error message |
 | Every plugin handler ran **twice** — Client was set to auto-load `plugins/` (pyrogram's `plugins={"root":"plugins"}`) *and* `bot.py` manually re-imported every file in `plugins/*.py` | Removed the auto-load, kept only the manual loader → `/start`, stream links, `/stats`, `/broadcast` etc. now fire once |
 | `info.py`'s `id_pattern` regex (`^.\d+$`) failed to match single-digit admin IDs | Fixed to `^\d+$` |
+
+## 👤 Maintainer
+
+**Goutham** — [@GouthamSER](https://github.com/GouthamSER)
