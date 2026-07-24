@@ -11,20 +11,20 @@
 ![Docker](https://img.shields.io/badge/deploy-Docker%2FKoyeb-0db7ed)
 
 </div>
-
+<hr>
 <div align="center">
-
+<h3>Deploy To Various Platforms :)</h3>
+<br>
+      
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/GouthamSER/FileToLink)
 [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/GouthamSER/FileToLink&branch=main&builder=dockerfile)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/GouthamSER/FileToLink)
 
 </div>
 
-<div align="center">
-
 ---
 
-## ✨ Features
+<h2 align="center">✨ Features</h2>
 
 - ⚡ Instant direct-download links for any file
 - 🎬 In-browser video/audio streaming page — full HTTP Range support, resumable
@@ -35,7 +35,7 @@
 - ♻️ Auto-restart every 3h, plus auto-restart on network errors
 - 💓 Self-ping keepalive for free-tier hosts (Heroku/Koyeb)
 
-## 🧱 Stack
+<h2 align="center">🧱 Stack</h2>
 
 | | |
 |---|---|
@@ -45,7 +45,7 @@
 | Database | MongoDB (motor) |
 | Deploy | Docker → Koyeb |
 
-## 🚀 Setup
+<h2 align="center">🚀 Setup</h2>
 
 **1. Install deps**
 ```bash
@@ -86,7 +86,7 @@ docker build -t filetolink .
 docker run -p 8080:8080 --env-file .env filetolink
 ```
 
-## ⚙️ How it works
+<h2 align="center">⚙️ How it works</h2>
 
 ```
 User sends file
@@ -105,7 +105,7 @@ aiohttp pulls file from Telegram on-demand,
 prefetch-pipelined, Range-aware → resumable
 ```
 
-## 📁 Project layout
+<h2 align="center">📁 Project layout</h2>
 
 ```
 bot.py                       entrypoint, plugin loader, auto-restart
@@ -121,12 +121,12 @@ lib/server/exceptions.py     InvalidHash / FIleNotFound
 plugins/                     command handlers (start, route, broadcast, stats, etc.)
 ```
 
-## 📝 Notes
+<h2 align="center">📝 Notes</h2>
 
 - `LOG_CHANNEL` must be a channel/group the bot is admin in — it's permanent file storage, not just a log.
 - Links are hash-protected (first 6 chars of the file's `unique_id`) so IDs can't be brute-forced sequentially.
 
-## 🩹 Fixes in this build
+<h2 align="center">🩹 Fixes in this build</h2>
 
 | Bug | Fix |
 |---|---|
@@ -138,6 +138,6 @@ plugins/                     command handlers (start, route, broadcast, stats, e
 | Every plugin handler ran **twice** — Client was set to auto-load `plugins/` (pyrogram's `plugins={"root":"plugins"}`) *and* `bot.py` manually re-imported every file in `plugins/*.py` | Removed the auto-load, kept only the manual loader → `/start`, stream links, `/stats`, `/broadcast` etc. now fire once |
 | `info.py`'s `id_pattern` regex (`^.\d+$`) failed to match single-digit admin IDs | Fixed to `^\d+$` |
 
-## 👤 Maintainer
+<h2 align="center">👤 Maintainer</h2>
 
-**Goutham** — [@GouthamSER](https://github.com/GouthamSER)
+<p align="center"><b>Goutham</b> — <a href="https://github.com/GouthamSER">@GouthamSER</a></p>
