@@ -30,7 +30,6 @@ class FileToLink(Client):
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
             workers=50,
-            plugins={"root": "plugins"},
             sleep_threshold=5,
         )
 
