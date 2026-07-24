@@ -1,7 +1,7 @@
 import re
 from os import environ
 
-id_pattern = re.compile(r'^.\d+$')
+id_pattern = re.compile(r'^\d+$')
 
 # Bot information
 SESSION = environ.get('SESSION', '')
