@@ -1,0 +1,91 @@
+{
+  "name": "FileToLink",
+  "description": "Send a file, get an instant streaming + download link.",
+  "repository": "https://github.com/GouthamSER/FileToLink",
+  "logo": "https://img.icons8.com/fluency/96/link.png",
+  "keywords": ["telegram", "bot", "pyrogram", "file-to-link", "streaming"],
+  "stack": "container",
+  "env": {
+    "API_ID": {
+      "description": "from my.telegram.org",
+      "required": true
+    },
+    "API_HASH": {
+      "description": "from my.telegram.org",
+      "required": true
+    },
+    "BOT_TOKEN": {
+      "description": "from @BotFather",
+      "required": true
+    },
+    "LOG_CHANNEL": {
+      "description": "private channel id used as file storage backend, bot must be admin",
+      "required": true
+    },
+    "DATABASE_URI": {
+      "description": "MongoDB connection string",
+      "required": true
+    },
+    "DATABASE_NAME": {
+      "description": "MongoDB database name",
+      "required": true
+    },
+    "URL": {
+      "description": "public base URL of this deployment, e.g. https://yourapp.herokuapp.com/",
+      "required": true
+    },
+    "ADMINS": {
+      "description": "space-separated admin user IDs",
+      "required": false
+    },
+    "FSUB_CHANNEL": {
+      "description": "force-subscribe channel id, 0 = disabled",
+      "required": false,
+      "value": "0"
+    },
+    "PORT": {
+      "description": "web server port",
+      "required": false,
+      "value": "8080"
+    },
+    "SLEEP_THRESHOLD": {
+      "description": "pyrogram flood sleep threshold",
+      "required": false,
+      "value": "60"
+    },
+    "PING_INTERVAL": {
+      "description": "self-ping keepalive interval in seconds",
+      "required": false,
+      "value": "1200"
+    },
+    "AUTO_RESTART": {
+      "description": "auto-restart every 12 hours, True/False",
+      "required": false,
+      "value": "True"
+    },
+    "SHORTLINK": {
+      "description": "use Shortzy-based shortener, True/False",
+      "required": false,
+      "value": "False"
+    },
+    "SHORTLINK_URL": {
+      "description": "shortener base site, required if SHORTLINK=True",
+      "required": false
+    },
+    "SHORTLINK_API": {
+      "description": "shortener API key, required if SHORTLINK=True",
+      "required": false
+    },
+    "ISGD": {
+      "description": "use is.gd shortener (no key needed), True/False",
+      "required": false,
+      "value": "False"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  }
+}
