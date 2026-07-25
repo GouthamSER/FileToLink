@@ -304,11 +304,22 @@ class ByteStreamer:
             # Client disconnected mid-download — cancel prefetch to avoid leaking tasks.
             logging.debug("Client disconnected; cancelling prefetch producer.")
             producer_task.cancel()
+            raise
         except Exception as e:
             logging.error(f"Error while streaming file: {e}")
             producer_task.cancel()
             raise
         finally:
+            # Always wait out cancellation/completion here — never leave the
+            # task dangling. An un-awaited cancelled task gets garbage
+            # collected later, and GC throws GeneratorExit into it outside
+            # any event loop context => "coroutine ignored GeneratorExit".
+            if not producer_task.done():
+                producer_task.cancel()
+            try:
+                await producer_task
+            except (asyncio.CancelledError, Exception):
+                pass
             logging.debug(f"Finished yielding file with {current_part} parts.")
             work_loads[index] -= 1
 
