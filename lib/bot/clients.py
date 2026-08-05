@@ -33,9 +33,20 @@ async def initialize_clients():
             return client_id, client
         except Exception:
             logging.error(f"Failed starting Client - {client_id} Error:", exc_info=True)
-    
-    clients = await asyncio.gather(*[start_client(i, token) for i, token in all_tokens.items()])
-    multi_clients.update(dict(clients))
+            return None
+
+    results = await asyncio.gather(
+        *[start_client(i, token) for i, token in all_tokens.items()],
+        return_exceptions=True,
+    )
+    # Drop failed clients (None) and any exception objects that slipped through
+    # instead of crashing dict() and killing multi-client / load balancing entirely.
+    good_clients = [r for r in results if isinstance(r, tuple)]
+    failed = len(results) - len(good_clients)
+    if failed:
+        logging.warning(f"{failed} client(s) failed to start and were skipped for load balancing")
+
+    multi_clients.update(dict(good_clients))
     if len(multi_clients) != 1:
         print("Multi-Client Mode Enabled")
     else:

@@ -3,158 +3,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{file_name}} | Video Player</title>
+<title>{{file_name}} | Cinema</title>
 <link rel="icon" href="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
 <meta property="og:title" content="{{file_name}}">
 <meta property="og:image" content="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
 <meta property="og:description" content="Watch {{file_name}} — stream or download instantly.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://cdn.plyr.io/3.6.9/plyr.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <style>
-:root{--bg:#080b10;--card:#131922;--border:rgba(255,255,255,.07);--gold:#f0b429;--gold2:#ffd166;--text:#e8edf5;--muted:#6b7a99;--r:14px}
+:root{
+  --bg:#050507;--bg2:#0a0a0f;--panel:#0f0f16;--panel2:#141420;
+  --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+  --acc:#7dffb3;--acc2:#00e0c6;--violet:#8b7cff;--rose:#ff5c8a;
+  --text:#eef1f7;--muted:#7c8399;--r:20px;--rs:12px
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;overflow-x:hidden}
-.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.18;pointer-events:none;z-index:0;animation:drift 14s ease-in-out infinite alternate}
-.orb1{width:500px;height:500px;background:#f0b429;top:-150px;left:-150px;animation-duration:16s}
-.orb2{width:400px;height:400px;background:#3b82f6;bottom:-100px;right:-100px;animation-duration:20s;animation-delay:-6s}
-.orb3{width:300px;height:300px;background:#a855f7;top:40%;left:50%;animation-duration:12s;animation-delay:-3s}
-@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(30px,20px) scale(1.05)}}
-.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:24px 16px 60px}
-.site-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:28px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
-.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pdot 2s ease-in-out infinite}
-@keyframes pdot{0%,100%{box-shadow:0 0 8px var(--gold)}50%{box-shadow:0 0 20px var(--gold)}}
-.hcopy{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:7px}
-.hcopy:hover{background:rgba(240,180,41,.12);color:var(--gold);border-color:var(--gold)}
-.file-title{font-size:clamp(1rem,2.5vw,1.35rem);font-weight:600;letter-spacing:-.02em;line-height:1.4;word-break:break-word;margin-bottom:6px}
-.meta-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px}
-.bp{font-size:.7rem;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:999px;letter-spacing:.04em;font-weight:500}
-.bp-s{background:rgba(240,180,41,.15);color:var(--gold);border:1px solid rgba(240,180,41,.3)}
-.bp-h{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
-.bp-k{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3)}
-.player-card{background:var(--card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px rgba(240,180,41,.12);margin-bottom:20px;transition:box-shadow .3s}
-.player-card:hover{box-shadow:0 28px 70px rgba(0,0,0,.6),0 0 60px rgba(240,180,41,.16)}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 700px at 15% -10%,rgba(139,124,255,.16),transparent 60%),
+    radial-gradient(1000px 600px at 100% 10%,rgba(0,224,198,.12),transparent 55%),
+    var(--bg);
+  color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden;
+}
+.noise{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.035;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.grain-line{position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--acc),var(--violet),transparent);z-index:3;opacity:.6}
+.wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:22px 18px 70px}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding-bottom:26px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1rem;letter-spacing:-.02em}
+.brand-mark{width:9px;height:9px;border-radius:2px;background:var(--acc);box-shadow:0 0 12px var(--acc);transform:rotate(45deg);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.pill-btn{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:.76rem;font-family:'JetBrains Mono',monospace;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;transition:.2s}
+.pill-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(125,255,179,.06)}
+
+.eyebrow{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin-bottom:10px}
+.eyebrow::before{content:'';width:16px;height:1px;background:var(--acc)}
+.title{font-size:clamp(1.15rem,3vw,1.7rem);font-weight:700;letter-spacing:-.03em;line-height:1.3;word-break:break-word;margin-bottom:18px}
+
+.stage{
+  position:relative;background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  box-shadow:0 40px 100px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.02) inset;
+  margin-bottom:16px;
+}
+.stage::before{content:'';position:absolute;top:-2px;left:10%;right:10%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--acc),var(--violet),transparent);filter:blur(1px)}
 .plyr{border-radius:0}
-.plyr--video .plyr__controls{background:linear-gradient(transparent,rgba(0,0,0,.85))}
-.plyr__control--overlaid{background:var(--gold)!important}
-.plyr__control--overlaid:hover{background:var(--gold2)!important}
-.plyr--full-ui input[type=range]{color:var(--gold)}
-.speed-strip{display:flex;align-items:center;gap:8px;padding:14px 18px;border-top:1px solid var(--border);background:rgba(255,255,255,.02);flex-wrap:wrap}
-.slbl{font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-right:4px}
-.sbtn,.pip-btn{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .18s}
-.sbtn:hover,.sbtn.active{background:rgba(240,180,41,.15);color:var(--gold);border-color:rgba(240,180,41,.4)}
-.pip-btn{margin-left:auto;display:flex;align-items:center;gap:5px}
-.pip-btn:hover{background:rgba(59,130,246,.12);color:#60a5fa;border-color:rgba(59,130,246,.35)}
-.actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
-.ab{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 10px;border-radius:var(--r);font-size:.82rem;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .18s,box-shadow .18s,background .18s;position:relative;overflow:hidden}
-.ab::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08),transparent 60%);pointer-events:none}
-.ab:hover{transform:translateY(-2px)}.ab:active{transform:translateY(0)}
-.b-vlc{background:#1d2230;border-color:rgba(255,106,0,.35);color:#ff6a00}.b-vlc:hover{background:rgba(255,106,0,.15);box-shadow:0 8px 24px rgba(255,106,0,.2)}
-.b-mx{background:#1a2218;border-color:rgba(34,197,94,.3);color:#4ade80}.b-mx:hover{background:rgba(34,197,94,.12);box-shadow:0 8px 24px rgba(34,197,94,.15)}
-.b-pl{background:#211c10;border-color:rgba(251,191,36,.3);color:#fbbf24}.b-pl:hover{background:rgba(251,191,36,.12);box-shadow:0 8px 24px rgba(251,191,36,.15)}
-.b-km{background:#12182a;border-color:rgba(96,165,250,.3);color:#60a5fa}.b-km:hover{background:rgba(96,165,250,.1);box-shadow:0 8px 24px rgba(96,165,250,.15)}
-.b-sp{background:#1e1528;border-color:rgba(167,139,250,.3);color:#a78bfa}.b-sp:hover{background:rgba(167,139,250,.1);box-shadow:0 8px 24px rgba(167,139,250,.15)}
-.b-dl{background:linear-gradient(135deg,#f0b429,#e09000);border-color:transparent;color:#080b10;font-weight:700}.b-dl:hover{box-shadow:0 8px 30px rgba(240,180,41,.4);filter:brightness(1.08)}
-.info-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.ii{display:flex;flex-direction:column;gap:2px}
-.ii .lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:'JetBrains Mono',monospace}
-.ii .val{font-size:.82rem;font-weight:600;font-family:'JetBrains Mono',monospace}
-.idiv{width:1px;height:36px;background:var(--border)}
-.clr{margin-left:auto}
-.clbtn{background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.3);border-radius:8px;padding:8px 16px;color:var(--gold);font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;white-space:nowrap}
-.clbtn:hover{background:rgba(240,180,41,.2);box-shadow:0 4px 16px rgba(240,180,41,.2)}
-.hk-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 22px;margin-bottom:20px}
-.hk-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.hk-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
-.hk{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--muted)}
-.kbd{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-bottom-width:2px;border-radius:5px;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text);min-width:28px;text-align:center}
-.site-footer{text-align:center;font-size:.72rem;color:var(--muted);padding-top:10px;font-family:'JetBrains Mono',monospace}
-.site-footer a{color:var(--gold);text-decoration:none}
-.toast-wrap{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none}
-.tp{background:rgba(7,9,15,.95);border:1px solid var(--border);backdrop-filter:blur(12px);border-radius:999px;padding:10px 22px;font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:9px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transform:translateY(12px);transition:opacity .25s,transform .25s}
+.plyr--video .plyr__controls{background:linear-gradient(transparent,rgba(0,0,0,.9))}
+.plyr__control--overlaid{background:var(--acc)!important;color:#050507!important}
+.plyr__control--overlaid:hover{background:var(--acc2)!important}
+.plyr--full-ui input[type=range]{color:var(--acc)}
+.plyr__control.plyr__tab-focus,.plyr__control:hover{background:var(--violet)!important}
+
+.toolbar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--line);background:rgba(255,255,255,.015);flex-wrap:wrap}
+.tlabel{font-size:.66rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
+.speed-chip,.pip-chip{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:.16s}
+.speed-chip:hover,.speed-chip.active{background:rgba(125,255,179,.1);color:var(--acc);border-color:var(--acc)}
+.pip-chip{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pip-chip:hover{background:rgba(139,124,255,.12);color:var(--violet);border-color:var(--violet)}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--rs);padding:13px 15px}
+.stat-lbl{font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.stat-val{font-size:.86rem;font-weight:600;font-family:'JetBrains Mono',monospace}
+.stat-val.live{color:var(--acc)}
+
+.copy-row{display:flex;gap:10px;margin-bottom:22px}
+.copy-field{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:var(--rs);padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center}
+.copy-go{background:var(--acc);color:#050507;border:none;border-radius:var(--rs);padding:0 20px;font-weight:700;font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.2s;white-space:nowrap}
+.copy-go:hover{background:var(--acc2);box-shadow:0 8px 24px rgba(125,255,179,.25)}
+
+.section-lbl{font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:11px;display:flex;align-items:center;gap:10px}
+.section-lbl::after{content:'';flex:1;height:1px;background:var(--line)}
+
+.app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:26px}
+.app-btn{display:flex;align-items:center;gap:10px;padding:14px 14px;border-radius:var(--rs);font-size:.82rem;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--text);transition:.18s;position:relative}
+.app-btn i{font-size:1rem;width:18px;text-align:center}
+.app-btn:hover{transform:translateY(-2px);border-color:var(--line2);background:var(--panel2)}
+.app-btn.dl{grid-column:span 2;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#050507;border:none;justify-content:center;font-weight:700}
+.app-btn.dl:hover{box-shadow:0 12px 32px rgba(0,224,198,.3);filter:brightness(1.05)}
+.app-btn .tint-vlc{color:#ff9351}.app-btn .tint-mx{color:#7dffb3}.app-btn .tint-pl{color:#ffd166}
+.app-btn .tint-km{color:#8b7cff}.app-btn .tint-sp{color:#ff5c8a}
+
+.hk-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin-bottom:20px}
+.hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px}
+.hk{display:flex;align-items:center;gap:9px;font-size:.74rem;color:var(--muted)}
+.kbd{display:inline-flex;align-items:center;justify-content:center;background:var(--panel2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:2px 8px;font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--text);min-width:26px;text-align:center}
+
+.footer{text-align:center;font-size:.72rem;color:var(--muted);padding-top:8px;font-family:'JetBrains Mono',monospace}
+.footer a{color:var(--acc);text-decoration:none}
+
+.toast-wrap{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none}
+.tp{background:rgba(10,10,15,.96);border:1px solid var(--line2);backdrop-filter:blur(14px);border-radius:999px;padding:11px 22px;font-size:.82rem;color:var(--text);display:flex;align-items:center;gap:9px;box-shadow:0 10px 34px rgba(0,0,0,.5);opacity:0;transform:translateY(14px);transition:opacity .25s,transform .25s}
 .tp.show{opacity:1;transform:translateY(0)}
-.ti{color:var(--gold)}
-@media(max-width:600px){.actions-grid{grid-template-columns:repeat(2,1fr)}.info-panel{flex-direction:column;align-items:flex-start;gap:12px}.clr{margin-left:0}.idiv{display:none}}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+.ti{color:var(--acc)}
+
+@media(max-width:600px){
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .app-btn.dl{grid-column:span 2}
+  .copy-row{flex-direction:column}
+}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
 </style>
 </head>
 <body>
-<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+<div class="grain-line"></div>
+<div class="noise"></div>
 <div class="wrap">
-  <header class="site-header">
-    <div class="brand"><div class="brand-dot"></div>File2Link by Goutham Josh</div>
-    <button class="hcopy" onclick="copyLink()"><i class="fa-solid fa-link"></i> Copy Link</button>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark"></div>File2Link · Goutham Josh</div>
+    <button class="pill-btn" onclick="copyLink()"><i class="fa-solid fa-link"></i> Copy Page</button>
   </header>
-  <div class="file-title">{{file_name}}</div>
-  <div class="meta-row">
-    <span class="bp bp-s"><i class="fa-solid fa-circle-play" style="margin-right:4px"></i>Stream Ready</span>
-    <span class="bp bp-h">HD</span>
-    <span class="bp bp-k"><i class="fa-solid fa-shield-halved" style="margin-right:4px"></i>Secure</span>
-  </div>
-  <div class="player-card">
+
+  <div class="eyebrow">Now Streaming</div>
+  <div class="title">{{file_name}}</div>
+
+  <div class="stage">
     <video id="player" playsinline controls preload="metadata">
       <source src="{{file_url}}" type="video/mp4">
     </video>
-    <div class="speed-strip">
-      <span class="slbl">SPEED</span>
-      <button class="sbtn" onclick="setSpeed(0.5)">0.5×</button>
-      <button class="sbtn active" onclick="setSpeed(1)">1×</button>
-      <button class="sbtn" onclick="setSpeed(1.25)">1.25×</button>
-      <button class="sbtn" onclick="setSpeed(1.5)">1.5×</button>
-      <button class="sbtn" onclick="setSpeed(2)">2×</button>
-      <button class="pip-btn" onclick="togglePiP()"><i class="fa-solid fa-window-restore"></i> PiP</button>
+    <div class="toolbar">
+      <span class="tlabel">Speed</span>
+      <button class="speed-chip" onclick="setSpeed(0.5,this)">0.5×</button>
+      <button class="speed-chip active" onclick="setSpeed(1,this)">1×</button>
+      <button class="speed-chip" onclick="setSpeed(1.25,this)">1.25×</button>
+      <button class="speed-chip" onclick="setSpeed(1.5,this)">1.5×</button>
+      <button class="speed-chip" onclick="setSpeed(2,this)">2×</button>
+      <button class="pip-chip" onclick="togglePiP()"><i class="fa-solid fa-window-restore"></i> PiP</button>
     </div>
   </div>
-  <div class="info-panel">
-    <div class="ii"><span class="lbl">Duration</span><span class="val" id="dur-val">—</span></div>
-    <div class="idiv"></div>
-    <div class="ii"><span class="lbl">Resolution</span><span class="val" id="res-val">—</span></div>
-    <div class="idiv"></div>
-    <div class="ii"><span class="lbl">Format</span><span class="val">MP4</span></div>
-    <div class="idiv"></div>
-    <div class="ii"><span class="lbl">Status</span><span class="val" id="status-val" style="color:#4ade80">Ready</span></div>
-    <div class="clr"><button class="clbtn" onclick="copyVideoUrl()"><i class="fa-solid fa-copy"></i> Copy Video URL</button></div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-lbl">Duration</div><div class="stat-val" id="dur-val">—</div></div>
+    <div class="stat"><div class="stat-lbl">Resolution</div><div class="stat-val" id="res-val">—</div></div>
+    <div class="stat"><div class="stat-lbl">Format</div><div class="stat-val">MP4</div></div>
+    <div class="stat"><div class="stat-lbl">Status</div><div class="stat-val live" id="status-val">Ready</div></div>
   </div>
-  <div class="actions-grid">
-    <button class="ab b-vlc" onclick="vlc_player()"><i class="fa-solid fa-circle-play"></i> VLC Player</button>
-    <button class="ab b-mx" onclick="mx_player()"><i class="fa-solid fa-mobile-screen-button"></i> MX Player</button>
-    <button class="ab b-pl" onclick="playit_player()"><i class="fa-solid fa-bolt"></i> PlayIt</button>
-    <button class="ab b-km" onclick="km_player()"><i class="fa-solid fa-film"></i> KM Player</button>
-    <button class="ab b-sp" onclick="s_player()"><i class="fa-solid fa-play"></i> Simple Player</button>
-    <button class="ab b-dl" onclick="lazyDownload()"><i class="fa-solid fa-cloud-arrow-down"></i> Download</button>
+
+  <div class="copy-row">
+    <div class="copy-field" id="urlPreview">{{file_url}}</div>
+    <button class="copy-go" onclick="copyVideoUrl()"><i class="fa-solid fa-copy"></i> Copy URL</button>
   </div>
+
+  <div class="section-lbl">Open with</div>
+  <div class="app-grid">
+    <button class="app-btn" onclick="vlc_player()"><i class="fa-solid fa-circle-play tint-vlc"></i> VLC</button>
+    <button class="app-btn" onclick="mx_player()"><i class="fa-solid fa-mobile-screen-button tint-mx"></i> MX Player</button>
+    <button class="app-btn" onclick="playit_player()"><i class="fa-solid fa-bolt tint-pl"></i> PlayIt</button>
+    <button class="app-btn" onclick="km_player()"><i class="fa-solid fa-film tint-km"></i> KM Player</button>
+    <button class="app-btn" onclick="s_player()"><i class="fa-solid fa-play tint-sp"></i> Simple Player</button>
+    <button class="app-btn dl" onclick="lazyDownload()"><i class="fa-solid fa-cloud-arrow-down"></i> Download</button>
+  </div>
+
   <div class="hk-panel">
-    <div class="hk-title">Keyboard Shortcuts</div>
+    <div class="section-lbl">Shortcuts</div>
     <div class="hk-grid">
       <div class="hk"><span class="kbd">Space</span> Play / Pause</div>
       <div class="hk"><span class="kbd">F</span> Fullscreen</div>
-      <div class="hk"><span class="kbd">M</span> Mute / Unmute</div>
+      <div class="hk"><span class="kbd">M</span> Mute</div>
       <div class="hk"><span class="kbd">←</span><span class="kbd">→</span> Seek 5s</div>
       <div class="hk"><span class="kbd">↑</span><span class="kbd">↓</span> Volume</div>
-      <div class="hk"><span class="kbd">P</span> Picture-in-Picture</div>
+      <div class="hk"><span class="kbd">P</span> PiP</div>
     </div>
   </div>
-  <footer class="site-footer">Powered by <a href="https://t.me/file2linkkuttu_bot">File2Link</a> · Files hosted on Telegram by Goutham SER</footer>
+
+  <footer class="footer">Powered by <a href="https://t.me/file2linkkuttu_bot">File2Link</a> · Files hosted on Telegram by Goutham SER</footer>
 </div>
 <div class="toast-wrap"><div class="tp" id="toast"><i class="fa-solid fa-check ti" id="ti"></i><span id="tm">Copied!</span></div></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.plyr.io/3.6.9/plyr.polyfilled.js"></script>
 <script>
 const U="{{file_url}}",vid=document.getElementById('player'),sv=document.getElementById('status-val');
 new Plyr('#player',{speed:{selected:1,options:[.5,.75,1,1.25,1.5,2]},keyboard:{focused:true,global:true},tooltips:{controls:true,seek:true}});
 vid.addEventListener('loadedmetadata',()=>{
   const s=Math.floor(vid.duration),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
-  document.getElementById('dur-val').textContent=(h?h+'h ':'')+( m?m+'m ':'')+sc+'s';
+  document.getElementById('dur-val').textContent=(h?h+'h ':'')+(m?m+'m ':'')+sc+'s';
   if(vid.videoWidth)document.getElementById('res-val').textContent=vid.videoWidth+'×'+vid.videoHeight;
 });
-vid.addEventListener('playing',()=>{sv.textContent='● Playing';sv.style.color='#4ade80'});
-vid.addEventListener('pause',()=>{sv.textContent='Paused';sv.style.color='#fbbf24'});
-vid.addEventListener('waiting',()=>{sv.textContent='Buffering…';sv.style.color='#60a5fa'});
-function setSpeed(s){vid.playbackRate=s;document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active')}
+vid.addEventListener('playing',()=>{sv.textContent='● Playing';sv.style.color='var(--acc)'});
+vid.addEventListener('pause',()=>{sv.textContent='Paused';sv.style.color='#ffd166'});
+vid.addEventListener('waiting',()=>{sv.textContent='Buffering…';sv.style.color='var(--violet)'});
+function setSpeed(s,btn){vid.playbackRate=s;document.querySelectorAll('.speed-chip').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
 async function togglePiP(){
   if(!document.pictureInPictureEnabled)return showToast('PiP not supported','fa-circle-xmark');
   document.pictureInPictureElement?await document.exitPictureInPicture():(await vid.requestPictureInPicture(),showToast('PiP enabled'));
@@ -183,4 +215,4 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('contextmenu',e=>e.preventDefault());
 </script>
 </body>
-        </html>
+</html>
