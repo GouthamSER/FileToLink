@@ -21,7 +21,7 @@ PORT = int(environ.get("PORT", "8080"))
 AUTO_RESTART = environ.get("AUTO_RESTART", "True").lower() in ["true", "1", "yes"]
 
 # Online Stream and Download
-MULTI_CLIENT = False
+MULTI_CLIENT = True
 SLEEP_THRESHOLD = int(environ.get('SLEEP_THRESHOLD', '60'))
 PING_INTERVAL = int(environ.get("PING_INTERVAL", "1200"))  #2min in seconds
 if 'DYNO' in environ:
