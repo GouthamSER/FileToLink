@@ -17,6 +17,13 @@ from pyrogram.file_id import FileId, FileType, ThumbnailSource
 # and is the single biggest speed improvement without adding extra bot clients.
 PREFETCH_SIZE = 3
 
+# Strong references to in-flight prefetch producer tasks. asyncio's event
+# loop only keeps a WEAK reference to Tasks created with create_task(); a
+# pending task with no other referrer can be garbage-collected mid-flight,
+# which is what caused the "coroutine ignored GeneratorExit" spam under
+# multi-client load. See yield_file() below.
+_BG_PRODUCER_TASKS: set = set()
+
 
 class ByteStreamer:
     def __init__(self, client: Client):
@@ -258,21 +265,46 @@ class ByteStreamer:
         # Pipeline buffer: producer fetches ahead, consumer yields in order.
         queue: asyncio.Queue = asyncio.Queue(maxsize=PREFETCH_SIZE)
         _SENTINEL = object()
+        # Cooperative stop flag — checked between chunk fetches only, never
+        # while a fetch is in-flight. Hard-cancelling a task mid-fetch (i.e.
+        # while it's suspended inside Pyrogram's network/executor bridge)
+        # can leave that bridge's internal Future in a half-registered state;
+        # the loop later force-closes the orphaned coroutine with
+        # GeneratorExit, which is exactly the "Exception ignored in ...
+        # producer / RuntimeError: coroutine ignored GeneratorExit" spam.
+        stop_event = asyncio.Event()
 
         async def producer():
             try:
                 for chunk_offset in offsets:
+                    if stop_event.is_set():
+                        break
                     chunk = await self._fetch_chunk(
                         media_session, location, chunk_offset, chunk_size
                     )
+                    if stop_event.is_set():
+                        break
                     await queue.put(chunk)
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
                 logging.error(f"Prefetch producer error: {e}")
-                await queue.put(e)  # Forward exception to consumer
+                try:
+                    queue.put_nowait(e)  # Forward exception to consumer
+                except asyncio.QueueFull:
+                    pass
             finally:
-                await queue.put(_SENTINEL)
+                try:
+                    queue.put_nowait(_SENTINEL)
+                except asyncio.QueueFull:
+                    pass
 
         producer_task = asyncio.create_task(producer())
+        # asyncio only holds a WEAK ref to tasks internally — with nothing
+        # else referencing it, GC can reap a still-pending task early. This
+        # module-level set keeps a strong ref alive until the task is done.
+        _BG_PRODUCER_TASKS.add(producer_task)
+        producer_task.add_done_callback(_BG_PRODUCER_TASKS.discard)
         current_part = 1
 
         try:
@@ -301,25 +333,33 @@ class ByteStreamer:
                 current_part += 1
 
         except GeneratorExit:
-            # Client disconnected mid-download — cancel prefetch to avoid leaking tasks.
-            logging.debug("Client disconnected; cancelling prefetch producer.")
-            producer_task.cancel()
+            # Client disconnected mid-download — signal the producer to stop.
+            logging.debug("Client disconnected; stopping prefetch producer.")
+            stop_event.set()
             raise
         except Exception as e:
             logging.error(f"Error while streaming file: {e}")
-            producer_task.cancel()
+            stop_event.set()
             raise
         finally:
-            # Always wait out cancellation/completion here — never leave the
-            # task dangling. An un-awaited cancelled task gets garbage
-            # collected later, and GC throws GeneratorExit into it outside
-            # any event loop context => "coroutine ignored GeneratorExit".
+            stop_event.set()
             if not producer_task.done():
-                producer_task.cancel()
-            try:
-                await producer_task
-            except (asyncio.CancelledError, Exception):
-                pass
+                # Give the in-flight fetch a chance to finish on its own
+                # (cooperative stop) instead of yanking it mid-await.
+                # asyncio.shield protects producer_task from being cancelled
+                # a second time if THIS await itself gets cancelled/closed
+                # (e.g. our own generator is being force-closed too) — it
+                # keeps running in the background, held alive by
+                # _BG_PRODUCER_TASKS, and cleans itself up.
+                try:
+                    await asyncio.wait_for(asyncio.shield(producer_task), timeout=5)
+                except asyncio.TimeoutError:
+                    logging.warning(
+                        "Prefetch producer didn't stop in time; force-cancelling."
+                    )
+                    producer_task.cancel()
+                except (asyncio.CancelledError, Exception):
+                    pass
             logging.debug(f"Finished yielding file with {current_part} parts.")
             work_loads[index] -= 1
 
