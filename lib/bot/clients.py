@@ -51,3 +51,18 @@ async def initialize_clients():
         print("Multi-Client Mode Enabled")
     else:
         print("No additional clients were initialized, using default client")
+
+
+async def stop_clients():
+    """Gracefully stop every started Pyrogram client (main + multi-clients).
+
+    Needed so SIGTERM shutdown (Heroku/Koyeb/Render) actually closes the
+    open MTProto sockets fast instead of hanging past the platform grace
+    period and getting SIGKILLed (Heroku R12 Exit timeout).
+    """
+    for client_id, client in list(multi_clients.items()):
+        try:
+            await client.stop()
+            print(f"Stopped - Client {client_id}")
+        except Exception:
+            logging.error(f"Failed stopping Client - {client_id} Error:", exc_info=True)

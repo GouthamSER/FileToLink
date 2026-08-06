@@ -1,4 +1,4 @@
-import sys, glob, importlib, logging, logging.config, pytz, asyncio, os
+import sys, glob, importlib, logging, logging.config, pytz, asyncio, os, signal
 from pathlib import Path
 from datetime import date, datetime
 from plugins.selfping import self_ping_task # selfping from plugin
@@ -23,7 +23,8 @@ from plugins import web_server
 
 from lib.bot import File2Link
 from lib.util.keepalive import ping_server
-from lib.bot.clients import initialize_clients
+from lib.bot.clients import initialize_clients, stop_clients
+from lib.util.custom_dl import cancel_all_producers
 
 # ================= CONFIG =================
 ppath = "plugins/*.py"
@@ -110,9 +111,9 @@ async def start():
         text=script.RESTART_TXT.format(today, now)
     )
 
-    app = web.AppRunner(await web_server())
-    await app.setup()
-    await web.TCPSite(app, "0.0.0.0", PORT).start()
+    app_runner = web.AppRunner(await web_server())
+    await app_runner.setup()
+    await web.TCPSite(app_runner, "0.0.0.0", PORT).start()
 
     # ================= AUTO RESTART CHECK =================
     if AUTO_RESTART:
@@ -129,8 +130,41 @@ async def start():
 
     # selfping
     asyncio.create_task(self_ping_task())
-    
+
     await idle()
+
+    # ================= GRACEFUL SHUTDOWN =================
+    # idle() returns once SIGINT/SIGTERM is received. Platforms like
+    # Heroku (R12), Koyeb, and Render only give ~30s (some less) between
+    # SIGTERM and a hard SIGKILL. Without explicit cleanup, open MTProto
+    # sockets (multi-client), in-flight stream tasks, and the aiohttp
+    # server can keep the process alive past that window -> force-killed
+    # instead of exiting clean. Bound the whole thing so we never eat the
+    # full grace period ourselves.
+    logging.info("Shutdown signal received, cleaning up...")
+    try:
+        await asyncio.wait_for(_shutdown(app_runner), timeout=20)
+    except asyncio.TimeoutError:
+        logging.warning("Graceful shutdown exceeded 20s, exiting anyway.")
+    logging.info("Shutdown complete. Bye 👋")
+
+
+async def _shutdown(app_runner: web.AppRunner):
+    # Stop accepting/serving first so no new stream requests start mid-cleanup.
+    try:
+        await app_runner.cleanup()
+    except Exception:
+        logging.error("Error during aiohttp cleanup", exc_info=True)
+
+    try:
+        await cancel_all_producers()
+    except Exception:
+        logging.error("Error cancelling stream producers", exc_info=True)
+
+    try:
+        await stop_clients()
+    except Exception:
+        logging.error("Error stopping Pyrogram clients", exc_info=True)
 
 # ================= RUN =================
 if __name__ == "__main__":
@@ -138,3 +172,16 @@ if __name__ == "__main__":
         loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info("Service Stopped Bye 👋")
+    finally:
+        # Let any cancelled tasks unwind before the loop itself closes,
+        # otherwise their cleanup can be cut off mid-way (same class of
+        # issue as the shutdown handling above).
+        try:
+            pending = asyncio.all_tasks(loop=loop)
+            for t in pending:
+                t.cancel()
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        except Exception:
+            pass
+        loop.close()

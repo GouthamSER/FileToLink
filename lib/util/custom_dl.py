@@ -371,3 +371,20 @@ class ByteStreamer:
             await asyncio.sleep(self.clean_timer)
             self.cached_file_ids.clear()
             logging.debug("Cleaned the cache")
+
+
+async def cancel_all_producers() -> None:
+    """Cancel any still-running prefetch producer tasks on shutdown.
+
+    Without this, in-flight stream downloads keep sockets/tasks alive and
+    the process can miss the platform's SIGTERM grace window (Heroku R12,
+    Koyeb/Render equivalents), getting force-killed instead of exiting clean.
+    """
+    tasks = list(_BG_PRODUCER_TASKS)
+    if not tasks:
+        return
+    for t in tasks:
+        if not t.done():
+            t.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    logging.info(f"Cancelled {len(tasks)} in-flight stream producer task(s) for shutdown")
