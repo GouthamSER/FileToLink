@@ -63,8 +63,26 @@ body{
 .tlabel{font-size:.66rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
 .speed-chip,.pip-chip{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:.16s}
 .speed-chip:hover,.speed-chip.active{background:rgba(125,255,179,.1);color:var(--acc);border-color:var(--acc)}
-.pip-chip{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pip-chip{display:flex;align-items:center;gap:6px}
 .pip-chip:hover{background:rgba(139,124,255,.12);color:var(--violet);border-color:var(--violet)}
+.tk-wrap{position:relative;margin-left:auto;display:flex;gap:8px}
+.tk-btn{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 11px;font-size:.72rem;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:.16s;display:flex;align-items:center;gap:6px;position:relative}
+.tk-btn:hover,.tk-btn.active{background:rgba(255,92,138,.1);color:var(--rose);border-color:var(--rose)}
+.tk-btn .dot{width:5px;height:5px;border-radius:50%;background:var(--rose);display:none}
+.tk-btn.has-opt .dot{display:inline-block}
+.tk-panel{position:absolute;bottom:calc(100% + 8px);right:0;min-width:210px;background:rgba(10,10,15,.98);border:1px solid var(--line2);border-radius:12px;padding:8px;backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.5);display:none;z-index:50;max-height:260px;overflow-y:auto}
+.tk-panel.open{display:block}
+.tk-title{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;padding:6px 8px 4px}
+.tk-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 9px;border-radius:8px;font-size:.78rem;cursor:pointer;color:var(--text);transition:.15s}
+.tk-opt:hover{background:rgba(255,255,255,.05)}
+.tk-opt.sel{background:rgba(125,255,179,.1);color:var(--acc)}
+.tk-opt.sel i.fa-check{display:inline-block}
+.tk-opt i.fa-check{display:none;font-size:.7rem}
+.tk-empty{padding:12px 9px;font-size:.72rem;color:var(--muted);text-align:center}
+.tk-sep{height:1px;background:var(--line);margin:6px 2px}
+.tk-file-row{padding:8px 9px}
+.tk-file-lbl{display:flex;align-items:center;justify-content:center;gap:7px;border:1px dashed var(--line2);border-radius:8px;padding:9px;font-size:.72rem;color:var(--muted);cursor:pointer;transition:.15s}
+.tk-file-lbl:hover{border-color:var(--acc);color:var(--acc)}
 
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--rs);padding:13px 15px}
@@ -134,6 +152,23 @@ body{
       <button class="speed-chip" onclick="setSpeed(1.5,this)">1.5×</button>
       <button class="speed-chip" onclick="setSpeed(2,this)">2×</button>
       <button class="pip-chip" onclick="togglePiP()"><i class="fa-solid fa-window-restore"></i> PiP</button>
+      <div class="tk-wrap">
+        <button class="tk-btn" id="audioBtn" onclick="togglePanel('audioPanel',this)"><i class="fa-solid fa-volume-high"></i> Audio<span class="dot"></span></button>
+        <div class="tk-panel" id="audioPanel">
+          <div class="tk-title">Audio Track</div>
+          <div id="audioList"><div class="tk-empty">Single audio track</div></div>
+        </div>
+        <button class="tk-btn" id="ccBtn" onclick="togglePanel('ccPanel',this)"><i class="fa-solid fa-closed-captioning"></i> CC<span class="dot"></span></button>
+        <div class="tk-panel" id="ccPanel">
+          <div class="tk-title">Subtitles</div>
+          <div id="ccList"><div class="tk-opt sel" data-idx="off" onclick="selectSub('off',this)"><span>Off</span><i class="fa-solid fa-check"></i></div></div>
+          <div class="tk-sep"></div>
+          <div class="tk-file-row">
+            <label class="tk-file-lbl" for="subUpload"><i class="fa-solid fa-upload"></i> Load .srt / .vtt</label>
+            <input type="file" id="subUpload" accept=".srt,.vtt" style="display:none" onchange="loadSubFile(this.files[0])">
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -182,7 +217,95 @@ vid.addEventListener('loadedmetadata',()=>{
   const s=Math.floor(vid.duration),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
   document.getElementById('dur-val').textContent=(h?h+'h ':'')+(m?m+'m ':'')+sc+'s';
   if(vid.videoWidth)document.getElementById('res-val').textContent=vid.videoWidth+'×'+vid.videoHeight;
+  populateAudioTracks();
+  populateTextTracks();
 });
+function togglePanel(id,btn){
+  const p=document.getElementById(id);
+  document.querySelectorAll('.tk-panel').forEach(x=>{if(x.id!==id)x.classList.remove('open')});
+  document.querySelectorAll('.tk-btn').forEach(x=>{if(x!==btn)x.classList.remove('active')});
+  p.classList.toggle('open');btn.classList.toggle('active');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tk-wrap')){document.querySelectorAll('.tk-panel').forEach(x=>x.classList.remove('open'));document.querySelectorAll('.tk-btn').forEach(x=>x.classList.remove('active'))}
+});
+// Native multi-audio switching. Only Chrome/Edge currently expose
+// HTMLMediaElement.audioTracks for muxed files, and only for tracks the
+// browser can actually decode (AAC/Opus/AC3-ish) — DTS/DTS-HD/TrueHD have
+// no browser decoder anywhere, that's a licensing wall not a bug, those
+// tracks won't show playable here even if present in the file.
+function populateAudioTracks(){
+  const list=document.getElementById('audioList'),btn=document.getElementById('audioBtn');
+  if(!('audioTracks' in vid)||!vid.audioTracks||vid.audioTracks.length<2){
+    list.innerHTML='<div class="tk-empty">Single audio track</div>';
+    btn.classList.remove('has-opt');
+    return;
+  }
+  list.innerHTML='';
+  btn.classList.add('has-opt');
+  for(let i=0;i<vid.audioTracks.length;i++){
+    const t=vid.audioTracks[i];
+    const label=t.label||t.language||`Track ${i+1}`;
+    const row=document.createElement('div');
+    row.className='tk-opt'+(t.enabled?' sel':'');
+    row.innerHTML=`<span>${label}</span><i class="fa-solid fa-check"></i>`;
+    row.onclick=()=>{
+      for(let j=0;j<vid.audioTracks.length;j++)vid.audioTracks[j].enabled=(j===i);
+      populateAudioTracks();
+      showToast(`Audio: ${label}`);
+    };
+    list.appendChild(row);
+  }
+}
+// Embedded WebVTT/text tracks (rare from a raw remuxed file) plus any
+// subtitle the user loads manually below, both shown in one list.
+function populateTextTracks(){
+  const list=document.getElementById('ccList');
+  list.innerHTML='<div class="tk-opt sel" data-idx="off" onclick="selectSub(\'off\',this)"><span>Off</span><i class="fa-solid fa-check"></i></div>';
+  for(let i=0;i<vid.textTracks.length;i++){
+    const t=vid.textTracks[i];
+    if(t.kind!=='subtitles'&&t.kind!=='captions')continue;
+    const row=document.createElement('div');
+    row.className='tk-opt';
+    row.dataset.idx=i;
+    row.innerHTML=`<span>${t.label||t.language||'Subtitle '+(i+1)}</span><i class="fa-solid fa-check"></i>`;
+    row.onclick=()=>selectSub(i,row);
+    list.appendChild(row);
+  }
+}
+function selectSub(idx,el){
+  for(let i=0;i<vid.textTracks.length;i++)vid.textTracks[i].mode='disabled';
+  if(idx!=='off')vid.textTracks[idx].mode='showing';
+  document.querySelectorAll('#ccList .tk-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('ccBtn').classList.toggle('has-opt',idx!=='off');
+  showToast(idx==='off'?'Subtitles off':'Subtitles on');
+}
+function srtToVtt(srt){
+  return 'WEBVTT\n\n'+srt.replace(/\r+/g,'').replace(/^\d+\s*\n/gm,'').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g,'$1.$2');
+}
+function loadSubFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let text=reader.result;
+    if(file.name.toLowerCase().endsWith('.srt'))text=srtToVtt(text);
+    const blob=new Blob([text],{type:'text/vtt'});
+    const url=URL.createObjectURL(blob);
+    const track=document.createElement('track');
+    track.kind='subtitles';track.label=file.name.replace(/\.(srt|vtt)$/i,'');track.srclang='en';track.src=url;
+    vid.appendChild(track);
+    vid.textTracks[vid.textTracks.length-1].mode='disabled';
+    populateTextTracks();
+    setTimeout(()=>{
+      const rows=document.querySelectorAll('#ccList .tk-opt');
+      const last=rows[rows.length-1];
+      if(last)selectSub(vid.textTracks.length-1,last);
+    },50);
+    showToast('Subtitle loaded: '+file.name,'fa-closed-captioning');
+  };
+  reader.readAsText(file);
+}
 vid.addEventListener('playing',()=>{sv.textContent='● Playing';sv.style.color='var(--acc)'});
 vid.addEventListener('pause',()=>{sv.textContent='Paused';sv.style.color='#ffd166'});
 vid.addEventListener('waiting',()=>{sv.textContent='Buffering…';sv.style.color='var(--violet)'});
