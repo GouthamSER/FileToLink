@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{file_name}} | Cinema</title>
+<title>{{file_name}} | File Stream Bot™</title>
 <link rel="icon" href="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
 <meta property="og:title" content="{{file_name}}">
 <meta property="og:image" content="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
@@ -16,7 +16,7 @@
 :root{
   --bg:#050507;--bg2:#0a0a0f;--panel:#0f0f16;--panel2:#141420;
   --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
-  --acc:#7dffb3;--acc2:#00e0c6;--violet:#8b7cff;--rose:#ff5c8a;
+  --acc:#7dffb3;--acc2:#00e0c6;--violet:#8b7cff;--rose:#ff5c8a;--tg:#2aabee;--tg2:#229ed9;
   --text:#eef1f7;--muted:#7c8399;--r:20px;--rs:12px
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -35,7 +35,8 @@ body{
 
 .topbar{display:flex;align-items:center;justify-content:space-between;padding-bottom:26px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1rem;letter-spacing:-.02em}
-.brand-mark{width:9px;height:9px;border-radius:2px;background:var(--acc);box-shadow:0 0 12px var(--acc);transform:rotate(45deg);animation:pulse 2.4s ease-in-out infinite}
+.brand-txt{background:linear-gradient(90deg,var(--tg),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-mark{width:9px;height:9px;border-radius:2px;background:var(--tg);box-shadow:0 0 12px var(--tg);transform:rotate(45deg);animation:pulse 2.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .pill-btn{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:.76rem;font-family:'JetBrains Mono',monospace;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;transition:.2s}
 .pill-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(125,255,179,.06)}
@@ -133,7 +134,7 @@ body{
 <div class="noise"></div>
 <div class="wrap">
   <header class="topbar">
-    <div class="brand"><div class="brand-mark"></div>File2Link · Goutham Josh</div>
+    <div class="brand"><div class="brand-mark"></div><span class="brand-txt">File Stream Bot™</span></div>
     <button class="pill-btn" onclick="copyLink()"><i class="fa-solid fa-link"></i> Copy Page</button>
   </header>
 
@@ -206,7 +207,7 @@ body{
     </div>
   </div>
 
-  <footer class="footer">Powered by <a href="https://t.me/file2linkkuttu_bot">File2Link</a> · Files hosted on Telegram by Goutham SER</footer>
+  <footer class="footer">Powered by <a href="https://t.me/file2linkkuttu_bot">File Stream Bot™</a> · Files hosted on Telegram</footer>
 </div>
 <div class="toast-wrap"><div class="tp" id="toast"><i class="fa-solid fa-check ti" id="ti"></i><span id="tm">Copied!</span></div></div>
 <script src="https://cdn.plyr.io/3.6.9/plyr.polyfilled.js"></script>
@@ -320,7 +321,7 @@ function mx_player(){go(`intent:${U}#Intent;package=com.mxtech.videoplayer.ad;en
 function playit_player(){go(`intent:${U}#Intent;package=com.playit.videoplayer;end`)}
 function km_player(){go(`intent:${U}#Intent;package=com.kmplayer;end`)}
 function s_player(){go(`intent:${U}#Intent;package=com.simplemobiletools.videoplayer;end`)}
-function lazyDownload(){showToast('Download started…','fa-cloud-arrow-down');const a=document.createElement('a');a.href=U;a.download='';document.body.appendChild(a);a.click();a.remove()}
+function lazyDownload(){showToast('Download started…','fa-cloud-arrow-down');const a=document.createElement('a');a.href=U;a.download="{{file_name_raw}}";document.body.appendChild(a);a.click();a.remove()}
 function copyLink(){navigator.clipboard.writeText(location.href).then(()=>showToast('Page link copied!'))}
 function copyVideoUrl(){navigator.clipboard.writeText(U).then(()=>showToast('Video URL copied!'))}
 let tt;
