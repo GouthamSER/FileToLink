@@ -18,9 +18,14 @@ async def render_page(id, secure_hash, src=None):
 
     raw_name = file_data.file_name or f"file_{secure_hash}"
 
+    # quote_plus encodes spaces as '+' — that's query-string syntax, not
+    # valid for a URL *path* segment. Some Android download managers (and
+    # anything doing a naive percent-decode without query-unquote) read
+    # that '+' back literally instead of a space, corrupting the saved
+    # filename. quote() with '%20' is the spec-correct choice for a path.
     src = urllib.parse.urljoin(
         URL,
-        f"{id}/{urllib.parse.quote_plus(raw_name)}?hash={secure_hash}",
+        f"{id}/{urllib.parse.quote(raw_name, safe='')}?hash={secure_hash}",
     )
 
     tag = (file_data.mime_type or "").split("/")[0].strip()
@@ -34,6 +39,7 @@ async def render_page(id, secure_hash, src=None):
 
     return template.render(
         file_name=file_name,
+        file_name_raw=raw_name,
         file_url=src,
         file_size=file_size,
         file_unique_id=file_data.unique_id,
