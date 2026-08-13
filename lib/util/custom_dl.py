@@ -17,6 +17,17 @@ from pyrogram.file_id import FileId, FileType, ThumbnailSource
 # and is the single biggest speed improvement without adding extra bot clients.
 PREFETCH_SIZE = 3
 
+# How many chunks a SINGLE stream fetches from Telegram in parallel.
+# Chunks were previously fetched strictly one-at-a-time — speed per viewer
+# was capped at chunk_size / round-trip-time regardless of how many
+# MULTI_TOKEN clients exist (client count only affects how many DIFFERENT
+# viewers can stream at once, not one viewer's own speed). Fetching a
+# small window concurrently hides RTT and raises single-stream throughput.
+# Keep this modest — Telegram will FloodWait a client that fires too many
+# parallel upload.GetFile calls, and that hurts every viewer on it, not
+# just this one.
+CONCURRENT_FETCHES = 2
+
 # Strong references to in-flight prefetch producer tasks. asyncio's event
 # loop only keeps a WEAK reference to Tasks created with create_task(); a
 # pending task with no other referrer can be garbage-collected mid-flight,
@@ -290,15 +301,26 @@ class ByteStreamer:
 
         async def producer():
             try:
-                for chunk_offset in offsets:
+                i = 0
+                n = len(offsets)
+                while i < n:
                     if stop_event.is_set():
                         break
-                    chunk = await self._fetch_chunk(
-                        media_session, location, chunk_offset, chunk_size
+                    batch = offsets[i : i + CONCURRENT_FETCHES]
+                    # Fetch this window in parallel — order preserved because
+                    # we only push results to the queue after the whole
+                    # batch resolves, and gather() keeps input order.
+                    results = await asyncio.gather(
+                        *[
+                            self._fetch_chunk(media_session, location, o, chunk_size)
+                            for o in batch
+                        ]
                     )
-                    if stop_event.is_set():
-                        break
-                    await queue.put(chunk)
+                    for chunk in results:
+                        if stop_event.is_set():
+                            break
+                        await queue.put(chunk)
+                    i += len(batch)
             except asyncio.CancelledError:
                 raise
             except Exception as e:
