@@ -7,7 +7,7 @@ from lib.bot import work_loads
 from pyrogram import Client, utils, raw
 from lib.util.file_properties import get_file_ids
 from pyrogram.session import Session, Auth
-from pyrogram.errors import AuthBytesInvalid, FloodWait
+from pyrogram.errors import AuthBytesInvalid, FloodWait, RPCError
 from lib.server.exceptions import FIleNotFound
 from pyrogram.file_id import FileId, FileType, ThumbnailSource
 
@@ -216,6 +216,20 @@ class ByteStreamer:
             except (ConnectionError, ConnectionResetError, OSError) as e:
                 logging.warning(
                     f"Connection error at offset {offset} "
+                    f"(attempt {attempt + 1}/{retries}): {e}, retrying in {delay}s"
+                )
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 10)
+                last_exc = e
+            except RPCError as e:
+                # Telegram-side hiccups ("[-503 Timeout] Telegram is having
+                # internal problems...", occasional 5xx-style RPC errors)
+                # are transient — Telegram's servers, not ours. Previously
+                # these fell through to the bare Exception handler below
+                # and instantly killed the whole stream for that viewer.
+                # Retry with backoff same as a connection error.
+                logging.warning(
+                    f"Telegram RPC error at offset {offset} "
                     f"(attempt {attempt + 1}/{retries}): {e}, retrying in {delay}s"
                 )
                 await asyncio.sleep(delay)
