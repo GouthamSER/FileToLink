@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{file_name}} | Goutham Josh</title>
+<title>{{file_name}} | File Stream Bot™</title>
 <link rel="icon" href="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
 <meta property="og:title" content="{{file_name}}">
 <meta property="og:image" content="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg">
-<meta property="og:description" content="Download file instantly — powered by Goutham Josh">
+<meta property="og:description" content="Download file instantly — powered by File Stream Bot™">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -16,7 +16,7 @@
 :root{
   --bg:#050507;--bg2:#0a0a0f;--panel:#0f0f16;--panel2:#141420;
   --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
-  --acc:#7dffb3;--acc2:#00e0c6;--violet:#8b7cff;--rose:#ff5c8a;
+  --acc:#7dffb3;--acc2:#00e0c6;--violet:#8b7cff;--rose:#ff5c8a;--tg:#2aabee;--tg2:#229ed9;
   --text:#eef1f7;--muted:#7c8399;--r:20px;--rs:12px
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -34,7 +34,8 @@ body{
 .page-wrap{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;position:sticky;top:0;z-index:100;background:rgba(5,5,7,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1rem;letter-spacing:-.02em;text-decoration:none;color:var(--text)}
-.brand-mark{width:9px;height:9px;border-radius:2px;background:var(--acc);box-shadow:0 0 12px var(--acc);transform:rotate(45deg);animation:pulse 2.4s ease-in-out infinite}
+.brand-txt{background:linear-gradient(90deg,var(--tg),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-mark{width:9px;height:9px;border-radius:2px;background:var(--tg);box-shadow:0 0 12px var(--tg);transform:rotate(45deg);animation:pulse 2.4s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .pill-btn{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:.76rem;font-family:'JetBrains Mono',monospace;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;transition:.2s;text-decoration:none}
 .pill-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(125,255,179,.06)}
@@ -43,7 +44,7 @@ body{
 
 .offcanvas{background:var(--bg2)!important;border-right:1px solid var(--line)!important;max-width:280px}
 .s-avatar{width:78px;height:78px;border-radius:50%;border:2px solid rgba(125,255,179,.4);box-shadow:0 0 20px rgba(125,255,179,.18);object-fit:cover;margin-bottom:12px}
-.s-name{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(90deg,var(--acc),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.s-name{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(90deg,var(--tg),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .s-tag{font-size:.72rem;color:var(--rose);font-weight:600;margin-bottom:16px;font-family:'JetBrains Mono',monospace}
 .s-link{display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:.83rem;font-weight:600;margin-bottom:8px;transition:.2s}
 .s-link:hover{background:rgba(125,255,179,.08);border-color:rgba(125,255,179,.3);color:var(--acc)}
@@ -113,7 +114,7 @@ body{
   <header>
     <div class="topbar">
       <button class="ham" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" onclick="document.getElementById('sidebar').classList.add('show')"><i class="fa-solid fa-bars"></i></button>
-      <a class="brand" href="https://t.me/wudixh12"><div class="brand-mark"></div>Goutham Josh</a>
+      <a class="brand" href="https://t.me/wudixh12"><div class="brand-mark"></div><span class="brand-txt">File Stream Bot™</span></a>
       <a href="https://t.me/wudixh12" target="_blank" class="pill-btn"><i class="fa-brands fa-telegram"></i> Join</a>
     </div>
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" style="visibility:hidden">
@@ -122,7 +123,7 @@ body{
       </div>
       <div style="padding:0 26px 26px;text-align:center">
         <img src="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg" class="s-avatar">
-        <div class="s-name">Goutham Josh</div>
+        <div class="s-name">File Stream Bot™</div>
         <div class="s-tag">✦ The One &amp; Only ✦</div>
         <a href="https://github.com/GouthamSER" target="_blank" class="s-link"><i class="fa-brands fa-github"></i> GitHub</a>
         <a href="https://t.me/wudixh12" target="_blank" class="s-link"><i class="fa-brands fa-telegram"></i> Telegram Channel</a>
@@ -146,7 +147,7 @@ body{
         <span class="bp bp-s"><i class="fa-solid fa-shield-halved" style="margin-right:4px"></i>Secure</span>
         <span class="bp bp-fr"><i class="fa-solid fa-infinity" style="margin-right:4px"></i>Free</span>
       </div>
-      <a href="{{file_url}}" class="dl-btn" onclick="triggerDownload()">
+      <a href="{{file_url}}" class="dl-btn" download="{{file_name_raw}}" onclick="triggerDownload()">
         <i class="fa-solid fa-cloud-arrow-down"></i>
         <span>Download File<span class="dl-btn-sub" id="fileNameSub">{{file_size}}</span></span>
       </a>
@@ -163,13 +164,13 @@ body{
     </div>
   </main>
   <footer class="site-footer">
-    <div class="f-name">Goutham Josh</div>
+    <div class="f-name">File Stream Bot™</div>
     <div class="f-links">
       <a href="https://github.com/GouthamSER" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
       <a href="https://t.me/wudixh12" target="_blank"><i class="fa-brands fa-telegram"></i> Telegram</a>
       <a href="https://instagram.com/im_goutham_josh" target="_blank"><i class="fa-brands fa-instagram"></i> Instagram</a>
     </div>
-    <div class="f-yr">© <span id="yr"></span> Goutham Josh · All rights reserved</div>
+    <div class="f-yr">© <span id="yr"></span> File Stream Bot™ · All rights reserved</div>
   </footer>
 </div>
 <div class="toast-wrap"><div class="tp" id="toast"><i class="fa-solid fa-check ti" id="ti"></i><span id="tm">Copied!</span></div></div>
