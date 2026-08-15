@@ -20,6 +20,15 @@ async def root_route_handler(request):
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
+    return await _render_page_route(request, page="watch")
+
+
+@routes.get(r"/dl/{path:\S+}", allow_head=True)
+async def download_page_handler(request: web.Request):
+    return await _render_page_route(request, page="dl")
+
+
+async def _render_page_route(request: web.Request, page: str):
     try:
         path = request.match_info["path"]
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
@@ -30,7 +39,7 @@ async def stream_handler(request: web.Request):
             id = int(re.search(r"(\d+)(?:\/\S+)?", path).group(1))
             secure_hash = request.rel_url.query.get("hash")
         return web.Response(
-            text=await render_page(id, secure_hash), content_type="text/html"
+            text=await render_page(id, secure_hash, page=page), content_type="text/html"
         )
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
