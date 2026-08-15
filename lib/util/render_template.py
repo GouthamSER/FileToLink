@@ -8,7 +8,7 @@ import urllib.parse
 import logging
 
 
-async def render_page(id, secure_hash, src=None):
+async def render_page(id, secure_hash, page="watch"):
     file = await File2Link.get_messages(int(LOG_CHANNEL), int(id))
     file_data = await get_file_ids(File2Link, int(LOG_CHANNEL), int(id))
     if file_data.unique_id[:6] != secure_hash:
@@ -28,9 +28,19 @@ async def render_page(id, secure_hash, src=None):
         f"{id}/{urllib.parse.quote(raw_name, safe='')}?hash={secure_hash}",
     )
 
+    # page="watch" -> always the player page, page="dl" -> always the
+    # download page, regardless of mime type. This is what the Telegram
+    # buttons/captions ask for explicitly (Watch vs Download intent), so
+    # don't let mime-sniffing override the caller's choice.
     tag = (file_data.mime_type or "").split("/")[0].strip()
+    if page == "dl":
+        template_file = "lib/template/dl.html"
+    elif page == "watch":
+        template_file = "lib/template/req.html" if tag in ["video", "audio"] else "lib/template/dl.html"
+    else:
+        template_file = "lib/template/req.html" if tag in ["video", "audio"] else "lib/template/dl.html"
+
     file_size = humanbytes(file_data.file_size)
-    template_file = "lib/template/req.html" if tag in ["video", "audio"] else "lib/template/dl.html"
 
     with open(template_file) as f:
         template = jinja2.Template(f.read())
