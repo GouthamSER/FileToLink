@@ -24,8 +24,11 @@ async def stream_handler(request: web.Request):
 
 
 @routes.get(r"/dl/{path:\S+}", allow_head=True)
-async def download_page_handler(request: web.Request):
-    return await _render_page_route(request, page="dl")
+async def download_direct_handler(request: web.Request):
+    # /dl/<hash+id> = direct download, same as the old bare /{id}/{filename}
+    # route — straight to raw bytes with Content-Disposition: attachment,
+    # no HTML page in between. Just reuses the new short hash+id URL shape.
+    return await _download_route(request)
 
 
 async def _render_page_route(request: web.Request, page: str):
@@ -55,6 +58,10 @@ async def _render_page_route(request: web.Request, page: str):
 
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def download_handler(request: web.Request):
+    return await _download_route(request)
+
+
+async def _download_route(request: web.Request):
     try:
         path = request.match_info["path"]
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
