@@ -30,7 +30,7 @@ from lib.util.custom_dl import cancel_all_producers
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 12 * 60 * 60  # 12 Hours
+RESTART_INTERVAL = 2 * 60 * 60  # 2 Hours
 
 loop = asyncio.get_event_loop()
 
