@@ -148,12 +148,18 @@ async def stream_start(client, message):
         print(f"Edited name: {edited_name}")
         print(f"Encoded fileName: {fileName}")
 
+        # Short link form: just server + hash+id, no filename in the URL
+        # at all (matches route.py's existing compact parser
+        # `^([a-zA-Z0-9_-]{6})(\d+)$` — hash is already deterministic from
+        # the file, so no DB lookup needed, no filename leakage in the URL).
+        short_token = f"{get_hash(log_msg)}{log_msg.id}"
+
         if SHORTLINK == False:
-            stream   = f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
-            download = f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}"
+            stream   = f"{URL}watch/{short_token}"
+            download = f"{URL}dl/{short_token}"
         else:
-            stream   = await get_shortlink(f"{URL}watch/{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
-            download = await get_shortlink(f"{URL}{str(log_msg.id)}/{fileName}?hash={get_hash(log_msg)}")
+            stream   = await get_shortlink(f"{URL}watch/{short_token}")
+            download = await get_shortlink(f"{URL}dl/{short_token}")
 
         await log_msg.reply_text(
             text=(
@@ -183,7 +189,7 @@ async def stream_start(client, message):
             f"<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{edited_name}</i>\n\n"
             f"<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{humanbytes(get_media_file_size(message))}</i>\n\n"
             f"<b>📥 Download Link: </b><code>{download}</code>\n\n"
-            f"<b><u>⏳ Lɪɴᴋ Exᴘɪʀᴇꜱ Iɴ 𝟦 day </u></b>\n\n"
+            f"<b><u>⏳ Lɪɴᴋ Exᴘɪʀᴇꜱ Iɴ 𝟤𝟦ʜʀꜱ </u></b>\n\n"
             f"📌 Note :- Use FDM (For PC) or FDM (For Mobile) To Download With Maximum Speed"
         )
 
