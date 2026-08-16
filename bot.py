@@ -30,7 +30,7 @@ from lib.util.custom_dl import cancel_all_producers
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 2 * 60 * 60  # 2 Hours
+RESTART_INTERVAL = 12 * 60 * 60  # 12 Hours
 
 loop = asyncio.get_event_loop()
 
@@ -48,21 +48,30 @@ async def auto_restart():
     try:
         tz = pytz.timezone("Asia/Kolkata")
         now = datetime.now(tz).strftime("%d-%m-%Y | %I:%M:%S %p")
+        hours = RESTART_INTERVAL // 3600
 
         await File2Link.send_message(
             chat_id=LOG_CHANNEL,
             text=(
                 "♻️ <b>Auto Restart Triggered</b>\n\n"
                 f"⏰ Time: <code>{now}</code>\n"
-                "🕕 Interval: <code>3 Hours</code>"
+                f"🕕 Interval: <code>{hours} Hours</code>"
             )
         )
     except Exception as e:
         logging.error(f"Restart message failed: {e}")
-    logging.info("Restarting bot after 3 hours")
+    logging.info(f"Restarting bot after {RESTART_INTERVAL // 3600} hours")
 
-    # Restart bot using python3 bot.py
-    os.execv(sys.executable, [sys.executable, "bot.py"])
+    # Previously this called os.execv(), which replaces the process image
+    # in place and completely SKIPS our SIGTERM shutdown handling below —
+    # every multi-client MTProto connection got killed uncleanly instead
+    # of properly logged out, every 12h. Send our own SIGTERM instead: it
+    # runs through the exact same graceful shutdown path a platform
+    # restart uses (stop_clients, cancel in-flight streams, close the
+    # aiohttp server), then exits 0 — Heroku/Koyeb/Render's process
+    # supervisor (the `web: python bot.py` Procfile entry) restarts it
+    # automatically, same as it does on any clean exit.
+    os.kill(os.getpid(), signal.SIGTERM)
 
 # ================= MAIN =================
 async def start():
