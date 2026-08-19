@@ -281,8 +281,17 @@ class ByteStreamer:
         client = self.client
         work_loads[index] += 1
         logging.debug(f"Starting to yield file with client {index}.")
-        media_session = await self.generate_media_session(client, file_id)
-        location = await self.get_location(file_id)
+        # generate_media_session()/get_location() can throw (auth error,
+        # connection drop, bad location) BEFORE the main try/finally below
+        # is reached — without this, that exception skips the decrement
+        # entirely and permanently inflates this client's load count,
+        # biasing the load balancer away from it forever.
+        try:
+            media_session = await self.generate_media_session(client, file_id)
+            location = await self.get_location(file_id)
+        except Exception:
+            work_loads[index] -= 1
+            raise
 
         # Pre-build the ordered list of byte offsets for each chunk.
         offsets = [offset + i * chunk_size for i in range(part_count)]
