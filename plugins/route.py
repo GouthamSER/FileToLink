@@ -103,123 +103,151 @@ class_cache = {}
 async def media_streamer(request: web.Request, id: int, secure_hash: str):
     range_header = request.headers.get("Range", "")
 
+    # Reserve the client's slot RIGHT HERE, synchronously, with the pick —
+    # no await between them. Previously the reservation (work_loads
+    # increment) only happened deep inside yield_file(), well after
+    # `await tg_connect.get_file_properties(id)` below. That await hands
+    # control back to the event loop, so a burst of near-simultaneous
+    # requests (exactly what download accelerators like FDM do — they open
+    # many parallel Range connections to the same URL at once) could all
+    # read the same stale work_loads snapshot and all pick the SAME
+    # "least loaded" client before any of them registered. Net effect:
+    # streaming (one connection at a time) balanced fine, but download
+    # managers' parallel connections all piled onto one or two clients.
+    # Doing pick+reserve as one atomic (no-await) step closes that window.
     index = min(work_loads, key=work_loads.get)
+    work_loads[index] += 1
+    reserved = True
     faster_client = multi_clients[index]
 
-    if len(multi_clients) > 1:
-        logging.info(f"Client {index} is now serving {request.remote}")
+    try:
+        if len(multi_clients) > 1:
+            logging.info(f"Client {index} is now serving {request.remote}")
 
-    if faster_client in class_cache:
-        tg_connect = class_cache[faster_client]
-        logging.debug(f"Using cached ByteStreamer object for client {index}")
-    else:
-        logging.debug(f"Creating new ByteStreamer object for client {index}")
-        tg_connect = ByteStreamer(faster_client)
-        class_cache[faster_client] = tg_connect
+        if faster_client in class_cache:
+            tg_connect = class_cache[faster_client]
+            logging.debug(f"Using cached ByteStreamer object for client {index}")
+        else:
+            logging.debug(f"Creating new ByteStreamer object for client {index}")
+            tg_connect = ByteStreamer(faster_client)
+            class_cache[faster_client] = tg_connect
 
-    logging.debug("before calling get_file_properties")
-    file_id = await tg_connect.get_file_properties(id)
-    logging.debug("after calling get_file_properties")
+        logging.debug("before calling get_file_properties")
+        file_id = await tg_connect.get_file_properties(id)
+        logging.debug("after calling get_file_properties")
 
-    if file_id.unique_id[:6] != secure_hash:
-        logging.debug(f"Invalid hash for message with ID {id}")
-        raise InvalidHash
+        if file_id.unique_id[:6] != secure_hash:
+            logging.debug(f"Invalid hash for message with ID {id}")
+            raise InvalidHash
 
-    file_size = file_id.file_size
+        file_size = file_id.file_size
 
-    # --- Range parsing ---------------------------------------------------------
-    # Always use 1 MB chunks (Telegram's GetFile hard limit).
-    chunk_size = 1024 * 1024
+        # --- Range parsing ---------------------------------------------------------
+        # Always use 1 MB chunks (Telegram's GetFile hard limit).
+        chunk_size = 1024 * 1024
 
-    if range_header:
-        # Parse "bytes=START-END" (END is optional)
-        try:
-            range_val = range_header.replace("bytes=", "")
-            start_str, end_str = range_val.split("-")
-            from_bytes = int(start_str) if start_str else 0
-            until_bytes = int(end_str) if end_str else file_size - 1
-        except (ValueError, AttributeError):
+        if range_header:
+            # Parse "bytes=START-END" (END is optional)
+            try:
+                range_val = range_header.replace("bytes=", "")
+                start_str, end_str = range_val.split("-")
+                from_bytes = int(start_str) if start_str else 0
+                until_bytes = int(end_str) if end_str else file_size - 1
+            except (ValueError, AttributeError):
+                return web.Response(
+                    status=416,
+                    body="416: Range not satisfiable",
+                    headers={"Content-Range": f"bytes */{file_size}"},
+                )
+        else:
+            from_bytes = 0
+            until_bytes = file_size - 1
+
+        # Clamp and validate
+        until_bytes = min(until_bytes, file_size - 1)
+
+        if until_bytes < from_bytes or from_bytes < 0:
             return web.Response(
                 status=416,
                 body="416: Range not satisfiable",
                 headers={"Content-Range": f"bytes */{file_size}"},
             )
-    else:
-        from_bytes = 0
-        until_bytes = file_size - 1
 
-    # Clamp and validate
-    until_bytes = min(until_bytes, file_size - 1)
+        # --- Chunk maths -----------------------------------------------------------
+        offset = from_bytes - (from_bytes % chunk_size)
+        first_part_cut = from_bytes - offset
+        last_part_cut = until_bytes % chunk_size + 1
+        req_length = until_bytes - from_bytes + 1
+        part_count = math.ceil(until_bytes / chunk_size) - math.floor(offset / chunk_size)
 
-    if until_bytes < from_bytes or from_bytes < 0:
-        return web.Response(
-            status=416,
-            body="416: Range not satisfiable",
-            headers={"Content-Range": f"bytes */{file_size}"},
+        # yield_file() owns the reservation from here on — it releases it
+        # (work_loads[index] -= 1) in its own finally once the actual byte
+        # stream finishes, however long that takes. Mark reserved=False so
+        # OUR except block below doesn't also release it once we return.
+        body = tg_connect.yield_file(
+            file_id, index, offset, first_part_cut, last_part_cut, part_count, chunk_size
         )
+        reserved = False
 
-    # --- Chunk maths -----------------------------------------------------------
-    offset = from_bytes - (from_bytes % chunk_size)
-    first_part_cut = from_bytes - offset
-    last_part_cut = until_bytes % chunk_size + 1
-    req_length = until_bytes - from_bytes + 1
-    part_count = math.ceil(until_bytes / chunk_size) - math.floor(offset / chunk_size)
+        # --- MIME / filename -------------------------------------------------------
+        mime_type = file_id.mime_type
+        file_name = file_id.file_name
 
-    body = tg_connect.yield_file(
-        file_id, index, offset, first_part_cut, last_part_cut, part_count, chunk_size
-    )
-
-    # --- MIME / filename -------------------------------------------------------
-    mime_type = file_id.mime_type
-    file_name = file_id.file_name
-
-    if mime_type:
-        if not file_name:
-            try:
-                ext = mime_type.split("/")[1]
-            except (IndexError, AttributeError):
-                ext = "unknown"
-            file_name = f"{secrets.token_hex(2)}.{ext}"
-    else:
-        if file_name:
-            mime_type = (
-                mimetypes.guess_type(file_name)[0] or "application/octet-stream"
-            )
+        if mime_type:
+            if not file_name:
+                try:
+                    ext = mime_type.split("/")[1]
+                except (IndexError, AttributeError):
+                    ext = "unknown"
+                file_name = f"{secrets.token_hex(2)}.{ext}"
         else:
-            mime_type = "application/octet-stream"
-            file_name = f"{secrets.token_hex(2)}.unknown"
+            if file_name:
+                mime_type = (
+                    mimetypes.guess_type(file_name)[0] or "application/octet-stream"
+                )
+            else:
+                mime_type = "application/octet-stream"
+                file_name = f"{secrets.token_hex(2)}.unknown"
 
-    # RFC 5987 — encode non-ASCII filenames so Chrome doesn't mangle them.
-    # Plain ASCII names use the simple form; everything else gets utf-8 encoding.
-    try:
-        file_name.encode("ascii")
-        disposition_value = f'attachment; filename="{file_name}"'
-    except UnicodeEncodeError:
-        encoded = urllib.parse.quote(file_name, safe="")
-        disposition_value = (
-            f"attachment; filename*=utf-8''{encoded}"
+        # RFC 5987 — encode non-ASCII filenames so Chrome doesn't mangle them.
+        # Plain ASCII names use the simple form; everything else gets utf-8 encoding.
+        try:
+            file_name.encode("ascii")
+            disposition_value = f'attachment; filename="{file_name}"'
+        except UnicodeEncodeError:
+            encoded = urllib.parse.quote(file_name, safe="")
+            disposition_value = (
+                f"attachment; filename*=utf-8''{encoded}"
+            )
+
+        # --- Response --------------------------------------------------------------
+        # Always respond 206 when a Range header was supplied (even bytes=0-).
+        # Chrome treats a 200 for a Range request as "no range support" and
+        # will restart the download from 0 if the connection drops.
+        status = 206 if range_header else 200
+
+        return web.Response(
+            status=status,
+            body=body,
+            headers={
+                "Content-Type": mime_type,
+                "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
+                "Content-Length": str(req_length),
+                "Content-Disposition": disposition_value,
+                # Tell clients (and Chrome's download manager) we support resuming.
+                "Accept-Ranges": "bytes",
+                # Prevent Chrome from caching a partial response and then
+                # refusing to request the remaining bytes.
+                "Cache-Control": "no-store, no-cache",
+                # Keep the TCP connection alive between chunk requests.
+                "Connection": "keep-alive",
+            },
         )
-
-    # --- Response --------------------------------------------------------------
-    # Always respond 206 when a Range header was supplied (even bytes=0-).
-    # Chrome treats a 200 for a Range request as "no range support" and
-    # will restart the download from 0 if the connection drops.
-    status = 206 if range_header else 200
-
-    return web.Response(
-        status=status,
-        body=body,
-        headers={
-            "Content-Type": mime_type,
-            "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
-            "Content-Length": str(req_length),
-            "Content-Disposition": disposition_value,
-            # Tell clients (and Chrome's download manager) we support resuming.
-            "Accept-Ranges": "bytes",
-            # Prevent Chrome from caching a partial response and then
-            # refusing to request the remaining bytes.
-            "Cache-Control": "no-store, no-cache",
-            # Keep the TCP connection alive between chunk requests.
-            "Connection": "keep-alive",
-        },
-    )
+    finally:
+        # Only fires if we exit WITHOUT ever reaching yield_file() (early
+        # 416 return, InvalidHash, get_file_properties failure) — in that
+        # case the reservation made at the top was never handed off, so
+        # release it here. Once yield_file() is called, reserved=False and
+        # this is a no-op; yield_file's own finally owns the release then.
+        if reserved:
+            work_loads[index] -= 1
