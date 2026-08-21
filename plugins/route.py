@@ -1,4 +1,4 @@
-import re, math, logging, secrets, mimetypes, urllib.parse, asyncio
+import re, math, time, logging, secrets, mimetypes, urllib.parse, asyncio
 from info import *
 from aiohttp import web
 from aiohttp.http_exceptions import BadStatusLine
@@ -15,7 +15,20 @@ routes = web.RouteTableDef()
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
-    return web.json_response("I AM ALive BABy")
+    # Heroku/Koyeb/Render self-ping only cares about status 200, so keep
+    # this fast and cheap — no DB/Telegram calls, just reading the
+    # already-in-memory work_loads dict.
+    clients = [
+        {"client_id": cid, "active_streams": load}
+        for cid, load in sorted(work_loads.items())
+    ]
+    return web.json_response({
+        "status": "alive",
+        "uptime": get_readable_time(int(time.time() - StartTime)),
+        "multi_client": len(multi_clients) > 1,
+        "total_clients": len(multi_clients),
+        "clients": clients,
+    })
 
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
