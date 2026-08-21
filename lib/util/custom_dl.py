@@ -279,13 +279,12 @@ class ByteStreamer:
         Thanks to Eyaadh <https://github.com/eyaadh>
         """
         client = self.client
-        work_loads[index] += 1
+        # NOTE: work_loads[index] is reserved by the CALLER (route.py's
+        # media_streamer, atomically with client selection) before this
+        # generator is even created — see media_streamer for why. This
+        # generator only owns the RELEASE, which happens exactly once in
+        # the finally block below once actual streaming ends.
         logging.debug(f"Starting to yield file with client {index}.")
-        # generate_media_session()/get_location() can throw (auth error,
-        # connection drop, bad location) BEFORE the main try/finally below
-        # is reached — without this, that exception skips the decrement
-        # entirely and permanently inflates this client's load count,
-        # biasing the load balancer away from it forever.
         try:
             media_session = await self.generate_media_session(client, file_id)
             location = await self.get_location(file_id)
