@@ -152,7 +152,14 @@ async def stream_start(client, message):
         # (quote(), not quote_plus() — quote_plus's '+' for spaces is
         # query-string syntax, not valid on a URL path, and corrupts the
         # saved filename in some Android download managers).
-        encoded_name = urllib.parse.quote(filename or edited_name, safe='')
+        # Clean filename for the URL: spaces -> underscore, strip anything
+        # that isn't alnum/dot/dash/underscore (so @ and other symbols are
+        # dropped, not percent-encoded). Only whatever's genuinely left
+        # over (rare non-ASCII chars) gets %-escaped as a safety net —
+        # normal filenames end up with zero %XX in the link.
+        url_safe_name = re.sub(r'\s+', '_', filename or edited_name)
+        url_safe_name = re.sub(r'[^\w\.-]', '', url_safe_name)
+        encoded_name = urllib.parse.quote(url_safe_name, safe='_.-')
         file_hash = get_hash(log_msg)
 
         if SHORTLINK == False:
