@@ -1,4 +1,4 @@
-import random, re
+import random, re, urllib.parse
 import humanize
 from Script import script
 from pyrogram import Client, filters, enums
@@ -148,24 +148,25 @@ async def stream_start(client, message):
         print(f"Edited name: {edited_name}")
         print(f"Encoded fileName: {fileName}")
 
-        # Short link form: just server + hash+id, no filename in the URL
-        # at all (matches route.py's existing compact parser
-        # `^([a-zA-Z0-9_-]{6})(\d+)$` — hash is already deterministic from
-        # the file, so no DB lookup needed, no filename leakage in the URL).
-        short_token = f"{get_hash(log_msg)}{log_msg.id}"
+        # Rolled back to the old long URL model: full filename in the path
+        # (quote(), not quote_plus() — quote_plus's '+' for spaces is
+        # query-string syntax, not valid on a URL path, and corrupts the
+        # saved filename in some Android download managers).
+        encoded_name = urllib.parse.quote(filename or edited_name, safe='')
+        file_hash = get_hash(log_msg)
 
         if SHORTLINK == False:
-            stream   = f"{URL}watch/{short_token}"
-            download = f"{URL}dl/{short_token}"
+            stream   = f"{URL}watch/{log_msg.id}/{encoded_name}?hash={file_hash}"
+            download = f"{URL}{log_msg.id}/{encoded_name}?hash={file_hash}"
         else:
-            stream   = await get_shortlink(f"{URL}watch/{short_token}")
-            download = await get_shortlink(f"{URL}dl/{short_token}")
+            stream   = await get_shortlink(f"{URL}watch/{log_msg.id}/{encoded_name}?hash={file_hash}")
+            download = await get_shortlink(f"{URL}{log_msg.id}/{encoded_name}?hash={file_hash}")
 
         await log_msg.reply_text(
             text=(
                 f"•• Lɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n"
                 f"•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n"
-                f"•• File Name : {edited_name}"
+                f"•• File Name : {filename}"
             ),
             quote=True,
             disable_web_page_preview=True,
@@ -186,7 +187,7 @@ async def stream_start(client, message):
 
         msg_text = (
             f"<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲ʀ𝗮𝘁𝗲𝗱 !</u></i>\n\n"
-            f"<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{edited_name}</i>\n\n"
+            f"<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{filename}</i>\n\n"
             f"<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{humanbytes(get_media_file_size(message))}</i>\n\n"
             f"<b>📥 Download Link: </b><code>{download}</code>\n\n"
             f"<b><u>⏳ Lɪɴᴋ Exᴘɪʀᴇꜱ Iɴ 𝟤𝟦ʜʀꜱ </u></b>\n\n"
