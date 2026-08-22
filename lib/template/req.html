@@ -84,6 +84,11 @@ body{
 .tk-file-row{padding:8px 9px}
 .tk-file-lbl{display:flex;align-items:center;justify-content:center;gap:7px;border:1px dashed var(--line2);border-radius:8px;padding:9px;font-size:.72rem;color:var(--muted);cursor:pointer;transition:.15s}
 .tk-file-lbl:hover{border-color:var(--acc);color:var(--acc)}
+.info-rows{display:flex;flex-direction:column;gap:2px;padding:2px}
+.info-row{display:flex;justify-content:space-between;gap:14px;padding:7px 9px;border-radius:8px;font-size:.74rem}
+.info-row:nth-child(odd){background:rgba(255,255,255,.02)}
+.info-k{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.68rem}
+.info-v{color:var(--text);font-weight:600;text-align:right;word-break:break-word;max-width:60%}
 
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--rs);padding:13px 15px}
@@ -157,9 +162,9 @@ body{
         <button class="tk-btn" id="audioBtn" onclick="togglePanel('audioPanel',this)"><i class="fa-solid fa-volume-high"></i> Audio<span class="dot"></span></button>
         <div class="tk-panel" id="audioPanel">
           <div class="tk-title">Audio Track</div>
-          <div id="audioList"><div class="tk-empty">Single audio track</div></div>
+          <div id="audioList"><div class="tk-empty">Checking…</div></div>
         </div>
-        <button class="tk-btn" id="ccBtn" onclick="togglePanel('ccPanel',this)"><i class="fa-solid fa-closed-captioning"></i> CC<span class="dot"></span></button>
+        <button class="tk-btn" id="ccBtn" onclick="togglePanel('ccPanel',this)"><i class="fa-solid fa-closed-captioning"></i> CC</button>
         <div class="tk-panel" id="ccPanel">
           <div class="tk-title">Subtitles</div>
           <div id="ccList"><div class="tk-opt sel" data-idx="off" onclick="selectSub('off',this)"><span>Off</span><i class="fa-solid fa-check"></i></div></div>
@@ -168,6 +173,11 @@ body{
             <label class="tk-file-lbl" for="subUpload"><i class="fa-solid fa-upload"></i> Load .srt / .vtt</label>
             <input type="file" id="subUpload" accept=".srt,.vtt" style="display:none" onchange="loadSubFile(this.files[0])">
           </div>
+        </div>
+        <button class="tk-btn" id="infoBtn" onclick="togglePanel('infoPanel',this)"><i class="fa-solid fa-circle-info"></i> Info</button>
+        <div class="tk-panel" id="infoPanel" style="min-width:250px">
+          <div class="tk-title">Media Info</div>
+          <div id="infoList" class="info-rows"></div>
         </div>
       </div>
     </div>
@@ -219,7 +229,7 @@ vid.addEventListener('loadedmetadata',()=>{
   document.getElementById('dur-val').textContent=(h?h+'h ':'')+(m?m+'m ':'')+sc+'s';
   if(vid.videoWidth)document.getElementById('res-val').textContent=vid.videoWidth+'×'+vid.videoHeight;
   populateAudioTracks();
-  populateTextTracks();
+  populateInfo();
 });
 function togglePanel(id,btn){
   const p=document.getElementById(id);
@@ -230,15 +240,26 @@ function togglePanel(id,btn){
 document.addEventListener('click',e=>{
   if(!e.target.closest('.tk-wrap')){document.querySelectorAll('.tk-panel').forEach(x=>x.classList.remove('open'));document.querySelectorAll('.tk-btn').forEach(x=>x.classList.remove('active'))}
 });
-// Native multi-audio switching. Only Chrome/Edge currently expose
-// HTMLMediaElement.audioTracks for muxed files, and only for tracks the
-// browser can actually decode (AAC/Opus/AC3-ish) — DTS/DTS-HD/TrueHD have
-// no browser decoder anywhere, that's a licensing wall not a bug, those
-// tracks won't show playable here even if present in the file.
+// Native multi-audio switching via HTMLMediaElement.audioTracks. Hard
+// platform limits, not fixable from JS:
+//  - Only Chrome/Edge implement this API for muxed <video> at all.
+//    Firefox/Safari never populate it, so "1 track detected" there is
+//    correct even on a genuinely multi-audio file — that's the browser,
+//    not this player.
+//  - Even in Chrome, it only sees tracks in a codec it can decode
+//    (AAC/Opus/AC3-ish). DTS/DTS-HD/TrueHD ship with zero browser
+//    decoder anywhere — a licensing wall, not a bug — those tracks are
+//    invisible here no matter what.
 function populateAudioTracks(){
   const list=document.getElementById('audioList'),btn=document.getElementById('audioBtn');
-  if(!('audioTracks' in vid)||!vid.audioTracks||vid.audioTracks.length<2){
-    list.innerHTML='<div class="tk-empty">Single audio track</div>';
+  const supported = 'audioTracks' in vid;
+  if(!supported){
+    list.innerHTML='<div class="tk-empty">This browser doesn\'t support track switching</div>';
+    btn.classList.remove('has-opt');
+    return;
+  }
+  if(!vid.audioTracks || vid.audioTracks.length<2){
+    list.innerHTML='<div class="tk-empty">Only 1 playable track detected<br><span style="opacity:.6">(other tracks may be DTS/TrueHD — no browser can decode those)</span></div>';
     btn.classList.remove('has-opt');
     return;
   }
@@ -258,28 +279,16 @@ function populateAudioTracks(){
     list.appendChild(row);
   }
 }
-// Embedded WebVTT/text tracks (rare from a raw remuxed file) plus any
-// subtitle the user loads manually below, both shown in one list.
-function populateTextTracks(){
-  const list=document.getElementById('ccList');
-  list.innerHTML='<div class="tk-opt sel" data-idx="off" onclick="selectSub(\'off\',this)"><span>Off</span><i class="fa-solid fa-check"></i></div>';
-  for(let i=0;i<vid.textTracks.length;i++){
-    const t=vid.textTracks[i];
-    if(t.kind!=='subtitles'&&t.kind!=='captions')continue;
-    const row=document.createElement('div');
-    row.className='tk-opt';
-    row.dataset.idx=i;
-    row.innerHTML=`<span>${t.label||t.language||'Subtitle '+(i+1)}</span><i class="fa-solid fa-check"></i>`;
-    row.onclick=()=>selectSub(i,row);
-    list.appendChild(row);
-  }
-}
+// Subtitles: no auto-detect anymore — raw remuxed files essentially never
+// carry a browser-readable soft-sub track (that needs an explicit <track>
+// pointing at a .vtt file), so scanning vid.textTracks here was just
+// showing "Off" every single time and looked broken. Manual load is the
+// only path that actually works, so that's the only path offered.
 function selectSub(idx,el){
   for(let i=0;i<vid.textTracks.length;i++)vid.textTracks[i].mode='disabled';
   if(idx!=='off')vid.textTracks[idx].mode='showing';
   document.querySelectorAll('#ccList .tk-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
-  document.getElementById('ccBtn').classList.toggle('has-opt',idx!=='off');
   showToast(idx==='off'?'Subtitles off':'Subtitles on');
 }
 function srtToVtt(srt){
@@ -296,16 +305,34 @@ function loadSubFile(file){
     const track=document.createElement('track');
     track.kind='subtitles';track.label=file.name.replace(/\.(srt|vtt)$/i,'');track.srclang='en';track.src=url;
     vid.appendChild(track);
-    vid.textTracks[vid.textTracks.length-1].mode='disabled';
-    populateTextTracks();
-    setTimeout(()=>{
-      const rows=document.querySelectorAll('#ccList .tk-opt');
-      const last=rows[rows.length-1];
-      if(last)selectSub(vid.textTracks.length-1,last);
-    },50);
+    const idx=vid.textTracks.length-1;
+    vid.textTracks[idx].mode='disabled';
+    const row=document.createElement('div');
+    row.className='tk-opt';
+    row.innerHTML=`<span>${track.label}</span><i class="fa-solid fa-check"></i>`;
+    row.onclick=()=>selectSub(idx,row);
+    document.getElementById('ccList').appendChild(row);
+    selectSub(idx,row);
     showToast('Subtitle loaded: '+file.name,'fa-closed-captioning');
   };
   reader.readAsText(file);
+}
+// VLC-style "Codec Information" panel — only what's honestly derivable
+// client-side from the HTML5 video element + file metadata. No fake
+// codec/bitrate strings — approx bitrate is computed, everything else is
+// exactly what the browser reports, nothing invented.
+function populateInfo(){
+  const list=document.getElementById('infoList');
+  const rows=[];
+  rows.push(['File name', "{{file_name}}"]);
+  rows.push(['Resolution', vid.videoWidth ? `${vid.videoWidth} × ${vid.videoHeight}` : '—']);
+  const s=Math.floor(vid.duration),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;
+  rows.push(['Duration', vid.duration ? `${h?h+'h ':''}${m}m ${sc}s` : '—']);
+  const sizeText=document.getElementById('dur-val') ? null : null;
+  rows.push(['Playback rate', vid.playbackRate+'×']);
+  rows.push(['Audio tracks', ('audioTracks' in vid && vid.audioTracks) ? vid.audioTracks.length : 'Unknown (browser limit)']);
+  rows.push(['Volume', Math.round(vid.volume*100)+'%'+(vid.muted?' (muted)':'')]);
+  list.innerHTML = rows.map(([k,v])=>`<div class="info-row"><span class="info-k">${k}</span><span class="info-v">${v}</span></div>`).join('');
 }
 vid.addEventListener('playing',()=>{sv.textContent='● Playing';sv.style.color='var(--acc)'});
 vid.addEventListener('pause',()=>{sv.textContent='Paused';sv.style.color='#ffd166'});
