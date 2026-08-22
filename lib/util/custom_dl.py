@@ -3,7 +3,7 @@ import asyncio
 import logging
 from info import *
 from typing import Dict, Union
-from lib.bot import work_loads
+from lib.bot import work_loads, multi_clients
 from pyrogram import Client, utils, raw
 from lib.util.file_properties import get_file_ids
 from pyrogram.session import Session, Auth
@@ -73,6 +73,24 @@ class ByteStreamer:
         Returns the properties in a FileId class.
         """
         file_id = await get_file_ids(self.client, LOG_CHANNEL, id)
+
+        # The load balancer can hand this request to ANY multi-client. If
+        # that specific bot token isn't actually admin in LOG_CHANNEL (or
+        # lost access), get_file_ids() returns nothing for it even though
+        # the file genuinely exists — every OTHER client can see it fine.
+        # Result looks like random "file not found" depending on which
+        # client got picked. Client 0 (the main bot) is required to be in
+        # LOG_CHANNEL for the bot to function at all, so it's the safe
+        # fallback before actually giving up.
+        if not file_id and self.client is not multi_clients.get(0):
+            logging.warning(
+                f"Client couldn't read message {id} from LOG_CHANNEL "
+                f"(likely missing admin access there) — retrying with main client."
+            )
+            main_client = multi_clients.get(0)
+            if main_client:
+                file_id = await get_file_ids(main_client, LOG_CHANNEL, id)
+
         logging.debug(f"Generated file ID and Unique ID for message with ID {id}")
         if not file_id:
             logging.debug(f"Message with ID {id} not found")
