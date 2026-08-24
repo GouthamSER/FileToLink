@@ -1,4 +1,4 @@
-wzgram[fast]
+pyroblack
 TgCrypto-pyrofork
 aiohttp[speedups]
 python-dotenv<=0.20.0
