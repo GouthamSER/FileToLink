@@ -207,7 +207,7 @@ class ByteStreamer:
         location,
         offset: int,
         chunk_size: int,
-        retries: int = 5,
+        retries: int = 7,
     ) -> bytes:
         """
         Fetches a single chunk from Telegram with automatic retry and back-off.
