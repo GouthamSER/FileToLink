@@ -36,7 +36,7 @@ class FileToLink(Client):
             # 16 comfortably covers realistic concurrent command volume
             # for this bot's scale without wasting RAM on a 512MB dyno
             # that's already tight with 13 multi-clients running.
-            workers=16,
+            workers=32,
             plugins={"root": "plugins"},
             sleep_threshold=5,
         )
