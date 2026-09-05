@@ -15,7 +15,7 @@ from pyrogram.file_id import FileId, FileType, ThumbnailSource
 # Number of chunks to prefetch concurrently.
 # Pipelining these requests hides the per-chunk Telegram MTProto round-trip
 # and is the single biggest speed improvement without adding extra bot clients.
-PREFETCH_SIZE = 5
+PREFETCH_SIZE = 4
 
 # How many chunks a SINGLE stream fetches from Telegram in parallel.
 # Chunks were previously fetched strictly one-at-a-time — speed per viewer
@@ -25,8 +25,12 @@ PREFETCH_SIZE = 5
 # small window concurrently hides RTT and raises single-stream throughput.
 # Keep this modest — Telegram will FloodWait a client that fires too many
 # parallel upload.GetFile calls, and that hurts every viewer on it, not
-# just this one.
-CONCURRENT_FETCHES = 4
+# just this one. Confirmed from real logs: FloodWait storms already
+# happened at CONCURRENT_FETCHES=2 under load — going to 4 doubles that
+# burst rate per viewer and is more likely to make FloodWait worse than
+# to meaningfully improve speed (still RTT-bound either way, diminishing
+# returns per added parallel fetch). 3 is a safer middle ground.
+CONCURRENT_FETCHES = 3
 
 # Strong references to in-flight prefetch producer tasks. asyncio's event
 # loop only keeps a WEAK reference to Tasks created with create_task(); a
