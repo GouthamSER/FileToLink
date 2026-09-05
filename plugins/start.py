@@ -4,7 +4,7 @@ from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, FSUB_CHANNEL 
+from info import URL, LOG_CHANNEL, SHORTLINK, FSUB_CHANNEL, ADMINS
 from urllib.parse import quote_plus
 from lib.util.file_properties import get_name, get_hash, get_media_file_size
 from lib.util.human_readable import humanbytes
@@ -74,7 +74,7 @@ async def start(client, message):
         )
 
     rm = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("✨ Update Channel", url="https://t.me/wudixh12")]]
+        [[InlineKeyboardButton("✨ Update Channel", url="https://t.me/wudixh15")]]
     )
     await client.send_message(
         chat_id=user_id,
@@ -189,7 +189,10 @@ async def stream_start(client, message):
             [
                 InlineKeyboardButton("Sᴛʀᴇᴀᴍ 🖥", url=stream),
                 InlineKeyboardButton("Dᴏᴡɴʟᴏᴀᴅ 📥", url=download),
-            ]
+            ],
+            [
+                InlineKeyboardButton("🗑 Revoke Link", callback_data=f"rv_{log_msg.id}_{user_id}"),
+            ],
         ])
 
         msg_text = (
@@ -211,3 +214,64 @@ async def stream_start(client, message):
     except Exception as e:
         await message.reply_text(f"Sorry, an error occurred while generating the link: {str(e)}")
         print(f"Error in stream_start: {e}")
+
+
+# ─────────────────────────────────────────────
+#  Revoke: delete the file from LOG_CHANNEL — kills every stream/download
+#  link pointing at it immediately (route.py's get_messages returns
+#  nothing once deleted -> clean 404 for anyone who still has the link).
+#  Two-step confirm so a stray tap can't nuke a file by accident.
+# ─────────────────────────────────────────────
+@Client.on_callback_query(filters.regex(r"^rv_(\d+)_(\d+)$"))
+async def revoke_ask(client, callback_query: CallbackQuery):
+    log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
+    if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
+        await callback_query.answer("❌ This isn't your file.", show_alert=True)
+        return
+    await callback_query.answer()
+    await callback_query.message.edit_reply_markup(
+        InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("⚠️ Confirm Revoke", callback_data=f"rvy_{log_msg_id}_{owner_id}"),
+                InlineKeyboardButton("Cancel", callback_data=f"rvn_{log_msg_id}_{owner_id}"),
+            ]
+        ])
+    )
+
+
+@Client.on_callback_query(filters.regex(r"^rvy_(\d+)_(\d+)$"))
+async def revoke_confirm(client, callback_query: CallbackQuery):
+    log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
+    if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
+        await callback_query.answer("❌ This isn't your file.", show_alert=True)
+        return
+    try:
+        await client.delete_messages(chat_id=LOG_CHANNEL, message_ids=log_msg_id)
+    except Exception as e:
+        await callback_query.answer(f"Failed to revoke: {e}", show_alert=True)
+        return
+    await callback_query.answer("🗑 Revoked — links are now dead.", show_alert=True)
+    try:
+        await callback_query.message.edit_text(
+            "🗑 <b>This file has been revoked.</b>\nAll stream/download links for it no longer work.",
+            reply_markup=None,
+        )
+    except Exception:
+        pass
+
+
+@Client.on_callback_query(filters.regex(r"^rvn_(\d+)_(\d+)$"))
+async def revoke_cancel(client, callback_query: CallbackQuery):
+    log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
+    if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
+        await callback_query.answer("❌ This isn't your file.", show_alert=True)
+        return
+    await callback_query.answer("Cancelled.")
+    # Buttons only carried the ids — links themselves aren't recoverable
+    # from here, so just drop back to a plain "revoke again?" button
+    # rather than trying to reconstruct the original Stream/Download URLs.
+    await callback_query.message.edit_reply_markup(
+        InlineKeyboardMarkup([[
+            InlineKeyboardButton("🗑 Revoke Link", callback_data=f"rv_{log_msg_id}_{owner_id}"),
+        ]])
+    )
