@@ -1,4 +1,5 @@
 import jinja2
+import functools
 from info import *
 from lib.bot import File2Link
 from lib.util.human_readable import humanbytes
@@ -6,6 +7,20 @@ from lib.util.file_properties import get_file_ids
 from lib.server.exceptions import InvalidHash
 import urllib.parse
 import logging
+
+
+# Compile each template ONCE and cache it — previously every single page
+# view re-read the HTML file off disk AND recompiled the Jinja AST from
+# scratch, discarded immediately after rendering. Under real traffic
+# (every /watch/ and /dl/ hit) that's pure repeated CPU+memory churn for
+# zero benefit since these files never change while the process is
+# running. lru_cache keeps at most 2 compiled templates (req.html,
+# dl.html) alive for the process lifetime — a few KB total, negligible,
+# and strictly less work than the old recompile-every-request behavior.
+@functools.lru_cache(maxsize=2)
+def _get_template(template_file: str) -> jinja2.Template:
+    with open(template_file) as f:
+        return jinja2.Template(f.read())
 
 
 async def render_page(id, secure_hash, page="watch"):
@@ -42,8 +57,7 @@ async def render_page(id, secure_hash, page="watch"):
 
     file_size = humanbytes(file_data.file_size)
 
-    with open(template_file) as f:
-        template = jinja2.Template(f.read())
+    template = _get_template(template_file)
 
     file_name = raw_name.replace("_", " ")
 
