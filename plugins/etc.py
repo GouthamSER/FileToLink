@@ -1,6 +1,7 @@
 import psutil
 import sys
 import os
+import signal
 import shutil
 import time
 import asyncio
@@ -172,14 +173,17 @@ async def stats_callback(client: Client, callback_query):
         except Exception as e:
             await callback_query.answer(f"❌ Error: {str(e)}", show_alert=True)
 
-# VIDEO SENDING HOW IT WORKS
+# HOW-TO GUIDE
 @Client.on_message(filters.private & filters.command("how"))
-async def send_two_videos(client, message):
-    # First video
-    await client.send_video(
-        chat_id=message.chat.id,
-        video="plugins/testvideo/vid1.mp4",
-        caption="Look this !!!"
+async def send_how_to(client, message):
+    await message.reply_text(
+        "<b>🛸 How to use:</b>\n\n"
+        "➊ Send me any file 📂\n"
+        "➋ Get your Stream + Download links instantly 🔗\n"
+        "➌ Stream in-browser or download, share freely 🚀\n\n"
+        "🗑 Want to take a link down? Tap <b>Revoke Link</b> on the message "
+        "I sent you for that file — confirm once, and it's gone for good.",
+        disable_web_page_preview=True,
     )
 
 # RESTART BOT COMMAND
@@ -187,6 +191,12 @@ async def send_two_videos(client, message):
 async def restart_bot(client, message):
     if message.from_user.id not in ADMINS:
         return await message.reply_text("❌ You are not authorized.")
-    
+
     await message.reply_text("♻️ <b>Bot is restarting...</b>")
-    os.execv(sys.executable, ['python3'] + sys.argv)
+    # os.execv() replaces the process image directly — it completely
+    # skips bot.py's SIGTERM shutdown handling (stop_clients, cancel
+    # in-flight streams, close the aiohttp server), same bug as the old
+    # 12h auto-restart had. Sending ourselves SIGTERM routes through that
+    # exact same graceful path instead, then the platform respawns the
+    # process on clean exit — same as any other restart.
+    os.kill(os.getpid(), signal.SIGTERM)
