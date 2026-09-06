@@ -2,6 +2,7 @@
 
 import os
 import sys
+import signal
 import asyncio
 import logging
 from datetime import datetime
@@ -57,7 +58,15 @@ async def restart_bot(reason: str):
         logging.error(f"Failed to send restart log: {e}")
 
     await asyncio.sleep(2)
-    os.execv(sys.executable, [sys.executable, "bot.py"])
+    # os.execv() replaces the process image directly, skipping bot.py's
+    # SIGTERM shutdown handling entirely — same bug the 12h auto-restart
+    # and the /restart command both had. This path is worse than either:
+    # it can fire automatically, mid-stream, on any matched network error,
+    # silently killing every open client connection uncleanly. Sending
+    # ourselves SIGTERM routes through the same graceful shutdown path
+    # bot.py already has, then the platform respawns the process on the
+    # resulting clean exit.
+    os.kill(os.getpid(), signal.SIGTERM)
 
 
 async def detect_error(error: Exception, context: str = "Unknown"):
