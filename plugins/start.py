@@ -142,21 +142,8 @@ async def stream_start(client, message):
         edited_name = get_name(log_msg)
         edited_name = re.sub(r'[^\w\.-]', '', edited_name)
         edited_name = edited_name.replace(" ", ".")
-        fileName = quote_plus(edited_name)
-
-        print(f"Original filename: {filename}")
-        print(f"Edited name: {edited_name}")
-        print(f"Encoded fileName: {fileName}")
-
-        # Rolled back to the old long URL model: full filename in the path
-        # (quote(), not quote_plus() — quote_plus's '+' for spaces is
-        # query-string syntax, not valid on a URL path, and corrupts the
-        # saved filename in some Android download managers).
-        # Clean filename for the URL: spaces -> underscore, strip anything
-        # that isn't alnum/dot/dash/underscore (so @ and other symbols are
-        # dropped, not percent-encoded). Only whatever's genuinely left
-        # over (rare non-ASCII chars) gets %-escaped as a safety net —
-        # normal filenames end up with zero %XX in the link.
+        
+        # Clean filename for the URL
         url_safe_name = re.sub(r'\s+', '_', filename or edited_name)
         url_safe_name = re.sub(r'[^\w\.-]', '', url_safe_name)
         encoded_name = urllib.parse.quote(url_safe_name, safe='_.-')
@@ -169,6 +156,7 @@ async def stream_start(client, message):
             stream   = await get_shortlink(f"{URL}watch/{log_msg.id}/{encoded_name}?hash={file_hash}")
             download = await get_shortlink(f"{URL}{log_msg.id}/{encoded_name}?hash={file_hash}")
 
+        # Send log message to log channel
         await log_msg.reply_text(
             text=(
                 f"•• Lɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n"
@@ -185,30 +173,37 @@ async def stream_start(client, message):
             ]),
         )
 
-        rm = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("Sᴛʀᴇᴀᴍ 🖥", url=stream),
-                InlineKeyboardButton("Dᴏᴡɴʟᴏᴀᴅ 📥", url=download),
-            ],
-            [
-                InlineKeyboardButton("🗑 Revoke Link", callback_data=f"rv_{log_msg.id}_{user_id}"),
-            ],
-        ])
-
+        # Updated Message Text Formatting with Blockquotes
+        bot_me = await client.get_me()
+        bot_username = f"@{bot_me.username}" if bot_me.username else temp.U_NAME
+        
         msg_text = (
-            f"<i><u>𝗬𝗼𝘂𝗿 𝗟𝗶𝗻𝗸 𝗚𝗲𝗻𝗲ʀ𝗮𝘁𝗲𝗱 !</u></i>\n\n"
-            f"<b>📂 Fɪʟᴇ ɴᴀᴍᴇ :</b> <i>{filename}</i>\n\n"
-            f"<b>📦 Fɪʟᴇ ꜱɪᴢᴇ :</b> <i>{humanbytes(get_media_file_size(message))}</i>\n\n"
-            f"<b>📥 Download Link: </b><code>{download}</code>\n\n"
-            f"<b><u>⏳ Lɪɴᴋ Exᴘɪʀᴇꜱ Iɴ 𝟤𝟦ʜʀꜱ </u></b>\n\n"
-            f"📌 Note :- Use FDM (For PC) or FDM (For Mobile) To Download With Maximum Speed"
+            f"<blockquote>▶ <b>File Name :</b> <i>{filename}</i>\n\n"
+            f"▶ <b>File Size :</b> {humanbytes(get_media_file_size(message))}</blockquote>\n\n"
+            f"<blockquote>➞ <b>Download :</b> <a href='{download}'>{download}</a>\n\n"
+            f"➞ <b>Watch Online :</b> <a href='{stream}'>{stream}</a></blockquote>\n\n"
+            f"💡 <i>Tip :- Use IDM (For PC) or 1DM (For Mobile) To Download With Maximum Speed</i>\n\n"
+            f"<blockquote>CC : {bot_username}</blockquote>"
         )
 
+        # Updated Button Layout (No Rename Button)
+        rm = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("⬇ Download", url=download),
+                InlineKeyboardButton("▶ Watch", url=stream),
+            ],
+            [
+                InlineKeyboardButton("⌫ Delete", callback_data=f"rv_{log_msg.id}_{user_id}"),
+            ]
+        ])
+
+        # Send to user
         await message.reply_text(
             text=msg_text,
             quote=True,
             disable_web_page_preview=True,
             reply_markup=rm,
+            parse_mode=enums.ParseMode.HTML
         )
 
     except Exception as e:
@@ -217,10 +212,7 @@ async def stream_start(client, message):
 
 
 # ─────────────────────────────────────────────
-#  Revoke: delete the file from LOG_CHANNEL — kills every stream/download
-#  link pointing at it immediately (route.py's get_messages returns
-#  nothing once deleted -> clean 404 for anyone who still has the link).
-#  Two-step confirm so a stray tap can't nuke a file by accident.
+#  Revoke: delete the file from LOG_CHANNEL
 # ─────────────────────────────────────────────
 @Client.on_callback_query(filters.regex(r"^rv_(\d+)_(\d+)$"))
 async def revoke_ask(client, callback_query: CallbackQuery):
@@ -232,7 +224,7 @@ async def revoke_ask(client, callback_query: CallbackQuery):
     await callback_query.message.edit_reply_markup(
         InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("⚠️ Confirm Revoke", callback_data=f"rvy_{log_msg_id}_{owner_id}"),
+                InlineKeyboardButton("⚠️ Confirm Delete", callback_data=f"rvy_{log_msg_id}_{owner_id}"),
                 InlineKeyboardButton("Cancel", callback_data=f"rvn_{log_msg_id}_{owner_id}"),
             ]
         ])
@@ -267,11 +259,9 @@ async def revoke_cancel(client, callback_query: CallbackQuery):
         await callback_query.answer("❌ This isn't your file.", show_alert=True)
         return
     await callback_query.answer("Cancelled.")
-    # Buttons only carried the ids — links themselves aren't recoverable
-    # from here, so just drop back to a plain "revoke again?" button
-    # rather than trying to reconstruct the original Stream/Download URLs.
+    
     await callback_query.message.edit_reply_markup(
         InlineKeyboardMarkup([[
-            InlineKeyboardButton("🗑 Revoke Link", callback_data=f"rv_{log_msg_id}_{owner_id}"),
+            InlineKeyboardButton("⌫ Delete", callback_data=f"rv_{log_msg_id}_{owner_id}"),
         ]])
     )
