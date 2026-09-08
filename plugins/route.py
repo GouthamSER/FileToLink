@@ -15,20 +15,148 @@ routes = web.RouteTableDef()
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(request):
-    # Heroku/Koyeb/Render self-ping only cares about status 200, so keep
-    # this fast and cheap — no DB/Telegram calls, just reading the
-    # already-in-memory work_loads dict.
-    clients = [
-        {"client_id": cid, "active_streams": load}
-        for cid, load in sorted(work_loads.items())
-    ]
-    return web.json_response({
-        "status": "alive",
-        "uptime": get_readable_time(int(time.time() - StartTime)),
-        "multi_client": len(multi_clients) > 1,
-        "total_clients": len(multi_clients),
-        "clients": clients,
-    })
+    # Fetch existing metrics
+    uptime_str = get_readable_time(int(time.time() - StartTime))
+    total_clients = len(multi_clients)
+    is_multi_client = total_clients > 1
+    
+    # Optional: Keep old JSON functionality if ?json=true is passed
+    # Useful for Heroku/Koyeb/Render bots that strictly expect JSON
+    if request.query.get("json") == "true":
+        clients = [
+            {"client_id": cid, "active_streams": load}
+            for cid, load in sorted(work_loads.items())
+        ]
+        return web.json_response({
+            "status": "alive",
+            "uptime": uptime_str,
+            "multi_client": is_multi_client,
+            "total_clients": total_clients,
+            "clients": clients,
+        })
+
+    # Generate HTML for the client workloads dynamically
+    clients_html = ""
+    for cid, load in sorted(work_loads.items()):
+        clients_html += f"""
+        <div class="client-item">
+            <span>Client ID: <b>{cid}</b></span>
+            <span class="badge">{load} Active Streams</span>
+        </div>
+        """
+        
+    if not clients_html:
+        clients_html = '<div class="client-item" style="justify-content: center; color: var(--text-muted);">No active clients found.</div>'
+
+    # Build responsive, interactive HTML string
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Status Dashboard</title>
+    <style>
+        :root {{
+            --bg: #0f172a; --card-bg: #1e293b; --item-bg: #334155;
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --accent: #38bdf8; --success: #10b981; --error: #ef4444;
+        }}
+        * {{ box-sizing: border-box; }}
+        body {{ 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: var(--bg); color: var(--text-main); 
+            margin: 0; padding: 1.5rem; 
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; 
+        }}
+        .container {{ 
+            background: var(--card-bg); padding: 2rem; 
+            border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); 
+            width: 100%; max-width: 650px; border: 1px solid #334155; 
+        }}
+        h1 {{ 
+            text-align: center; color: var(--accent); 
+            margin-top: 0; display: flex; align-items: center; 
+            justify-content: center; gap: 12px; font-size: 1.8rem;
+        }}
+        .stat-grid {{ 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
+            gap: 1rem; margin-bottom: 2rem; 
+        }}
+        .stat-card {{ 
+            background: var(--item-bg); padding: 1.5rem 1rem; 
+            border-radius: 0.75rem; text-align: center; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+        }}
+        .stat-card:hover {{ 
+            transform: translateY(-5px); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }}
+        .stat-value {{ 
+            font-size: 1.25rem; font-weight: bold; margin: 0.5rem 0; 
+            color: var(--success); 
+        }}
+        .stat-label {{ 
+            font-size: 0.75rem; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 0.1em; 
+        }}
+        .client-list {{ 
+            background: var(--item-bg); border-radius: 0.75rem; overflow: hidden; 
+        }}
+        .client-item {{ 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 1rem 1.5rem; border-bottom: 1px solid #475569; 
+            transition: background 0.2s;
+        }}
+        .client-item:hover {{ background: #3f4e66; }}
+        .client-item:last-child {{ border-bottom: none; }}
+        .status-indicator {{ 
+            display: inline-block; width: 14px; height: 14px; 
+            background: var(--success); border-radius: 50%; 
+            box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; 
+        }}
+        .badge {{ 
+            background: var(--accent); color: var(--bg); 
+            padding: 0.35rem 0.75rem; border-radius: 999px; 
+            font-size: 0.8rem; font-weight: bold; 
+        }}
+        @keyframes pulse {{
+            0% {{ box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }}
+            70% {{ box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="status-indicator"></span> System Status</h1>
+        
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value">{uptime_str}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Clients</div>
+                <div class="stat-value">{total_clients}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Multi-Client</div>
+                <div class="stat-value" style="color: {'var(--success)' if is_multi_client else 'var(--error)'}">
+                    {is_multi_client}
+                </div>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-muted); letter-spacing: 0.05em;">ACTIVE WORKLOADS</h2>
+        <div class="client-list">
+            {clients_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+    return web.Response(text=html_content, content_type="text/html")
 
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
