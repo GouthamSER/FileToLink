@@ -10,6 +10,14 @@ from lib.util.file_properties import get_name, get_hash, get_media_file_size
 from lib.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
+import time
+
+# ButtonStyle is a real Telegram Bot API 9.5 (Feb 2026) feature — a
+# `style` field on InlineKeyboardButton giving it an actual colored
+# appearance in-client (not a modded-client trick). Not every Pyrogram
+# fork has caught up to it yet, so this import is wrapped: if the
+# installed fork doesn't have it, buttons silently fall back to default
+# style instead of crashing the whole bot on import.
 try:
     from pyrogram.enums import ButtonStyle
     HAS_BUTTON_STYLE = True
@@ -156,18 +164,20 @@ async def stream_start(client, message):
         edited_name = re.sub(r'[^\w\.-]', '', edited_name)
         edited_name = edited_name.replace(" ", ".")
 
-        # Clean filename for the URL
-        url_safe_name = re.sub(r'\s+', '_', filename or edited_name)
-        url_safe_name = re.sub(r'[^\w\.-]', '', url_safe_name)
-        encoded_name = urllib.parse.quote(url_safe_name, safe='_.-')
         file_hash = get_hash(log_msg)
 
+        # No filename in the URL at all — just server + message id + hash.
+        # The real filename is never lost: Content-Disposition (and the
+        # download= attribute on the button) already force it onto the
+        # saved file at actual download time regardless of what the URL
+        # itself looks like — this only cleans up what's visible in the
+        # link people share.
         if SHORTLINK == False:
-            stream   = f"{URL}watch/{log_msg.id}/{encoded_name}?hash={file_hash}"
-            download = f"{URL}{log_msg.id}/{encoded_name}?hash={file_hash}"
+            stream   = f"{URL}watch/{log_msg.id}?hash={file_hash}"
+            download = f"{URL}{log_msg.id}?hash={file_hash}"
         else:
-            stream   = await get_shortlink(f"{URL}watch/{log_msg.id}/{encoded_name}?hash={file_hash}")
-            download = await get_shortlink(f"{URL}{log_msg.id}/{encoded_name}?hash={file_hash}")
+            stream   = await get_shortlink(f"{URL}watch/{log_msg.id}?hash={file_hash}")
+            download = await get_shortlink(f"{URL}{log_msg.id}?hash={file_hash}")
 
         # Send log message to log channel
         await log_msg.reply_text(
@@ -226,56 +236,53 @@ async def stream_start(client, message):
 
 
 # ─────────────────────────────────────────────
-#  Revoke: delete the file from LOG_CHANNEL
+#  Revoke: delete the file from LOG_CHANNEL.
+#
+#  Tap-twice confirm instead of swapping buttons. The old approach
+#  replaced the message's ENTIRE reply_markup with a Confirm/Cancel
+#  pair, and Cancel had no way to reconstruct the original Download/
+#  Watch buttons (their URLs aren't stored anywhere retrievable at that
+#  point) — so Cancel permanently lost them, leaving only a bare Delete
+#  button behind. Never touching reply_markup at all avoids that
+#  entirely: same Delete button both taps, state lives in a small
+#  in-memory dict instead.
 # ─────────────────────────────────────────────
+_PENDING_REVOKES = {}   # {(log_msg_id, owner_id): expires_at_timestamp}
+_REVOKE_CONFIRM_WINDOW = 10  # seconds
+
+
 @Client.on_callback_query(filters.regex(r"^rv_(\d+)_(\d+)$"))
-async def revoke_ask(client, callback_query: CallbackQuery):
+async def revoke_tap(client, callback_query: CallbackQuery):
     log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
     if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
         await callback_query.answer("❌ This isn't your file.", show_alert=True)
         return
-    await callback_query.answer()
-    await callback_query.message.edit_reply_markup(
-        InlineKeyboardMarkup([
-            [
-                styled_button("⚠️ Confirm Revoke", style=ButtonStyle.DANGER if HAS_BUTTON_STYLE else None, callback_data=f"rvy_{log_msg_id}_{owner_id}"),
-                InlineKeyboardButton("Cancel", callback_data=f"rvn_{log_msg_id}_{owner_id}"),
-            ]
-        ])
-    )
 
+    key = (log_msg_id, owner_id)
+    now = time.time()
+    expires_at = _PENDING_REVOKES.get(key)
 
-@Client.on_callback_query(filters.regex(r"^rvy_(\d+)_(\d+)$"))
-async def revoke_confirm(client, callback_query: CallbackQuery):
-    log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
-    if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
-        await callback_query.answer("❌ This isn't your file.", show_alert=True)
+    if expires_at and now < expires_at:
+        # Second tap within the window — actually delete.
+        _PENDING_REVOKES.pop(key, None)
+        try:
+            await client.delete_messages(chat_id=LOG_CHANNEL, message_ids=log_msg_id)
+        except Exception as e:
+            await callback_query.answer(f"Failed to revoke: {e}", show_alert=True)
+            return
+        await callback_query.answer("🗑 Revoked — links are now dead.", show_alert=True)
+        try:
+            await callback_query.message.edit_text(
+                "🗑 <b>This file has been revoked.</b>\nAll stream/download links for it no longer work.",
+                reply_markup=None,
+            )
+        except Exception:
+            pass
         return
-    try:
-        await client.delete_messages(chat_id=LOG_CHANNEL, message_ids=log_msg_id)
-    except Exception as e:
-        await callback_query.answer(f"Failed to revoke: {e}", show_alert=True)
-        return
-    await callback_query.answer("🗑 Revoked — links are now dead.", show_alert=True)
-    try:
-        await callback_query.message.edit_text(
-            "🗑 <b>This file has been revoked.</b>\nAll stream/download links for it no longer work.",
-            reply_markup=None,
-        )
-    except Exception:
-        pass
 
-
-@Client.on_callback_query(filters.regex(r"^rvn_(\d+)_(\d+)$"))
-async def revoke_cancel(client, callback_query: CallbackQuery):
-    log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
-    if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
-        await callback_query.answer("❌ This isn't your file.", show_alert=True)
-        return
-    await callback_query.answer("Cancelled.")
-
-    await callback_query.message.edit_reply_markup(
-        InlineKeyboardMarkup([[
-            styled_button("⌫ Delete", style=ButtonStyle.DANGER if HAS_BUTTON_STYLE else None, callback_data=f"rv_{log_msg_id}_{owner_id}"),
-        ]])
+    # First tap — arm it, don't touch any buttons.
+    _PENDING_REVOKES[key] = now + _REVOKE_CONFIRM_WINDOW
+    await callback_query.answer(
+        f"⚠️ Tap Delete again within {_REVOKE_CONFIRM_WINDOW}s to permanently delete this file.",
+        show_alert=True,
     )
