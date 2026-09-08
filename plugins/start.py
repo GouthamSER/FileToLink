@@ -10,6 +10,19 @@ from lib.util.file_properties import get_name, get_hash, get_media_file_size
 from lib.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
+try:
+    from pyrogram.enums import ButtonStyle
+    HAS_BUTTON_STYLE = True
+except ImportError:
+    HAS_BUTTON_STYLE = False
+
+
+def styled_button(text, style=None, **kwargs):
+    """InlineKeyboardButton with an optional color style, safe on forks
+    that don't support ButtonStyle yet — falls back to a plain button."""
+    if HAS_BUTTON_STYLE and style is not None:
+        return InlineKeyboardButton(text, style=style, **kwargs)
+    return InlineKeyboardButton(text, **kwargs)
 
 
 # ─────────────────────────────────────────────
@@ -40,7 +53,7 @@ async def send_fsub_message(client, message):
     rm = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("🔔 Join Channel", url=invite_link)],
-            [InlineKeyboardButton("✅ I've Joined", callback_data="check_fsub")],
+            [styled_button("✅ I've Joined", style=ButtonStyle.SUCCESS if HAS_BUTTON_STYLE else None, callback_data="check_fsub")],
         ]
     )
     await message.reply_text(
@@ -142,7 +155,7 @@ async def stream_start(client, message):
         edited_name = get_name(log_msg)
         edited_name = re.sub(r'[^\w\.-]', '', edited_name)
         edited_name = edited_name.replace(" ", ".")
-        
+
         # Clean filename for the URL
         url_safe_name = re.sub(r'\s+', '_', filename or edited_name)
         url_safe_name = re.sub(r'[^\w\.-]', '', url_safe_name)
@@ -167,8 +180,8 @@ async def stream_start(client, message):
             disable_web_page_preview=True,
             reply_markup=InlineKeyboardMarkup([
                 [
-                    InlineKeyboardButton("🚀 Fast Download 🚀", url=download),
-                    InlineKeyboardButton("🖥️ Watch online 🖥️", url=stream),
+                    styled_button("🚀 Fast Download 🚀", style=ButtonStyle.PRIMARY if HAS_BUTTON_STYLE else None, url=download),
+                    styled_button("🖥️ Watch online 🖥️", style=ButtonStyle.SUCCESS if HAS_BUTTON_STYLE else None, url=stream),
                 ]
             ]),
         )
@@ -176,7 +189,7 @@ async def stream_start(client, message):
         # Updated Message Text Formatting with Blockquotes
         bot_me = await client.get_me()
         bot_username = f"@{bot_me.username}" if bot_me.username else temp.U_NAME
-        
+
         msg_text = (
             f"<blockquote>▶ <b>File Name :</b> <i>{filename}</i>\n\n"
             f"▶ <b>File Size :</b> {humanbytes(get_media_file_size(message))}</blockquote>\n\n"
@@ -186,14 +199,15 @@ async def stream_start(client, message):
             f"<blockquote>CC : {bot_username}</blockquote>"
         )
 
-        # Updated Button Layout (No Rename Button)
+        # Colored buttons (ButtonStyle — Bot API 9.5): blue Download,
+        # green Watch, red Delete. No Rename button — never had one.
         rm = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("⬇ Download", url=download),
-                InlineKeyboardButton("▶ Watch", url=stream),
+                styled_button("⬇ Download", style=ButtonStyle.PRIMARY if HAS_BUTTON_STYLE else None, url=download),
+                styled_button("▶ Watch", style=ButtonStyle.SUCCESS if HAS_BUTTON_STYLE else None, url=stream),
             ],
             [
-                InlineKeyboardButton("⌫ Delete", callback_data=f"rv_{log_msg.id}_{user_id}"),
+                styled_button("⌫ Delete", style=ButtonStyle.DANGER if HAS_BUTTON_STYLE else None, callback_data=f"rv_{log_msg.id}_{user_id}"),
             ]
         ])
 
@@ -224,7 +238,7 @@ async def revoke_ask(client, callback_query: CallbackQuery):
     await callback_query.message.edit_reply_markup(
         InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("⚠️ Confirm Delete", callback_data=f"rvy_{log_msg_id}_{owner_id}"),
+                styled_button("⚠️ Confirm Revoke", style=ButtonStyle.DANGER if HAS_BUTTON_STYLE else None, callback_data=f"rvy_{log_msg_id}_{owner_id}"),
                 InlineKeyboardButton("Cancel", callback_data=f"rvn_{log_msg_id}_{owner_id}"),
             ]
         ])
@@ -259,9 +273,9 @@ async def revoke_cancel(client, callback_query: CallbackQuery):
         await callback_query.answer("❌ This isn't your file.", show_alert=True)
         return
     await callback_query.answer("Cancelled.")
-    
+
     await callback_query.message.edit_reply_markup(
         InlineKeyboardMarkup([[
-            InlineKeyboardButton("⌫ Delete", callback_data=f"rv_{log_msg_id}_{owner_id}"),
+            styled_button("⌫ Delete", style=ButtonStyle.DANGER if HAS_BUTTON_STYLE else None, callback_data=f"rv_{log_msg_id}_{owner_id}"),
         ]])
     )
