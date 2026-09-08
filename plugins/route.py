@@ -21,7 +21,6 @@ async def root_route_handler(request):
     is_multi_client = total_clients > 1
     
     # Optional: Keep old JSON functionality if ?json=true is passed
-    # Useful for Heroku/Koyeb/Render bots that strictly expect JSON
     if request.query.get("json") == "true":
         clients = [
             {"client_id": cid, "active_streams": load}
@@ -41,95 +40,181 @@ async def root_route_handler(request):
         clients_html += f"""
         <div class="client-item">
             <span>Client ID: <b>{cid}</b></span>
-            <span class="badge">{load} Active Streams</span>
+            <span class="badge">{load} Active</span>
         </div>
         """
         
     if not clients_html:
         clients_html = '<div class="client-item" style="justify-content: center; color: var(--text-muted);">No active clients found.</div>'
 
-    # Build responsive, interactive HTML string
+    # Build responsive, interactive HTML string matching the screenshot
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Status Dashboard</title>
+    <title>File ² Link</title>
     <style>
         :root {{
-            --bg: #0f172a; --card-bg: #1e293b; --item-bg: #334155;
-            --text-main: #f8fafc; --text-muted: #94a3b8;
-            --accent: #38bdf8; --success: #10b981; --error: #ef4444;
+            --bg-main: #121212;
+            --bg-secondary: #1e1e1e;
+            --accent-purple: #9333ea;
+            --text-main: #ffffff;
+            --text-muted: #a3a3a3;
+            --success: #22c55e;
+            --error: #ef4444;
         }}
-        * {{ box-sizing: border-box; }}
-        body {{ 
-            font-family: system-ui, -apple-system, sans-serif; 
-            background: var(--bg); color: var(--text-main); 
-            margin: 0; padding: 1.5rem; 
-            display: flex; justify-content: center; align-items: center; 
-            min-height: 100vh; 
+        body, html {{
+            margin: 0; padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            scroll-behavior: smooth;
         }}
-        .container {{ 
-            background: var(--card-bg); padding: 2rem; 
-            border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); 
-            width: 100%; max-width: 650px; border: 1px solid #334155; 
+        /* Navbar */
+        nav {{
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            position: absolute;
+            top: 0; width: 100%;
+            box-sizing: border-box;
         }}
-        h1 {{ 
-            text-align: center; color: var(--accent); 
-            margin-top: 0; display: flex; align-items: center; 
-            justify-content: center; gap: 12px; font-size: 1.8rem;
+        .logo {{
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }}
-        .stat-grid {{ 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
-            gap: 1rem; margin-bottom: 2rem; 
+        .logo span {{
+            color: var(--accent-purple);
         }}
-        .stat-card {{ 
-            background: var(--item-bg); padding: 1.5rem 1rem; 
-            border-radius: 0.75rem; text-align: center; 
-            transition: transform 0.2s, box-shadow 0.2s; 
+        /* Hero Section */
+        .hero {{
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
         }}
-        .stat-card:hover {{ 
-            transform: translateY(-5px); 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        .hero h1 {{
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin: 0 0 1rem 0;
+            font-weight: 800;
+            letter-spacing: -0.02em;
         }}
-        .stat-value {{ 
-            font-size: 1.25rem; font-weight: bold; margin: 0.5rem 0; 
-            color: var(--success); 
+        .hero p {{
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: var(--text-muted);
+            margin: 0;
+            max-width: 600px;
         }}
-        .stat-label {{ 
-            font-size: 0.75rem; color: var(--text-muted); 
-            text-transform: uppercase; letter-spacing: 0.1em; 
+        /* Scroll prompt */
+        .scroll-prompt {{
+            margin-top: 4rem;
+            color: var(--text-muted);
+            animation: bounce 2s infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }}
-        .client-list {{ 
-            background: var(--item-bg); border-radius: 0.75rem; overflow: hidden; 
+        @keyframes bounce {{
+            0%, 20%, 50%, 80%, 100% {{ transform: translateY(0); }}
+            40% {{ transform: translateY(-10px); }}
+            60% {{ transform: translateY(-5px); }}
         }}
-        .client-item {{ 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 1rem 1.5rem; border-bottom: 1px solid #475569; 
-            transition: background 0.2s;
+        /* Status Section */
+        .status-section {{
+            padding: 4rem 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 80vh;
         }}
-        .client-item:hover {{ background: #3f4e66; }}
-        .client-item:last-child {{ border-bottom: none; }}
+        .section-title {{
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }}
         .status-indicator {{ 
             display: inline-block; width: 14px; height: 14px; 
             background: var(--success); border-radius: 50%; 
             box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; 
         }}
+        @keyframes pulse {{
+            0% {{ box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }}
+            70% {{ box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }}
+        }}
+        .stat-grid {{ 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 1rem; margin-bottom: 3rem; 
+        }}
+        .stat-card {{ 
+            background: var(--bg-secondary); padding: 1.5rem; 
+            border-radius: 1rem; text-align: center; 
+            border: 1px solid #262626;
+        }}
+        .stat-value {{ 
+            font-size: 1.5rem; font-weight: bold; margin: 0.5rem 0; 
+            color: var(--success); 
+        }}
+        .stat-label {{ 
+            font-size: 0.8rem; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 0.1em; 
+        }}
+        /* Clients List */
+        .client-list {{ 
+            background: var(--bg-secondary); border-radius: 1rem; overflow: hidden; 
+            border: 1px solid #262626;
+        }}
+        .client-item {{ 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 1.25rem 1.5rem; border-bottom: 1px solid #262626; 
+        }}
+        .client-item:last-child {{ border-bottom: none; }}
         .badge {{ 
-            background: var(--accent); color: var(--bg); 
+            background: var(--accent-purple); color: #fff; 
             padding: 0.35rem 0.75rem; border-radius: 999px; 
             font-size: 0.8rem; font-weight: bold; 
         }}
-        @keyframes pulse {{
-            0% {{ box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }}
-            70% {{ box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }}
-            100% {{ box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }}
+        /* Footer */
+        footer {{
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid #262626;
+            margin-top: 2rem;
+        }}
+        footer a {{
+            color: var(--accent-purple);
+            text-decoration: none;
         }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1><span class="status-indicator"></span> System Status</h1>
+    <nav>
+        <div class="logo">FILE ² <span>LINK</span></div>
+    </nav>
+
+    <section class="hero">
+        <h1>Welcome to File ² Link</h1>
+        <p>Experience seamless streaming like never before.</p>
+        
+        <div class="scroll-prompt">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            <div style="font-size: 0.75rem; margin-top: 0.75rem; text-transform: uppercase; letter-spacing: 2px;">Scroll for Status</div>
+        </div>
+    </section>
+
+    <section class="status-section" id="status">
+        <h2 class="section-title"><span class="status-indicator"></span> System Status</h2>
         
         <div class="stat-grid">
             <div class="stat-card">
@@ -148,11 +233,15 @@ async def root_route_handler(request):
             </div>
         </div>
 
-        <h2 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-muted); letter-spacing: 0.05em;">ACTIVE WORKLOADS</h2>
+        <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase;">Active Workloads</h3>
         <div class="client-list">
             {clients_html}
         </div>
-    </div>
+    </section>
+
+    <footer>
+        Copyright &copy; 2026 <a href="#">File ² Link</a>. All Rights Reserved.
+    </footer>
 </body>
 </html>
 """
