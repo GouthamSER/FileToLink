@@ -29,16 +29,9 @@ class FileToLink(Client):
             api_id=API_ID,
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
-            # 50 was overkill — `workers` sizes the pool that dispatches
-            # incoming Telegram updates (commands/messages) through your
-            # handlers; it has NO effect on streaming/download speed,
-            # that's a separate path via raw invoke() in custom_dl.py.
-            # 16 comfortably covers realistic concurrent command volume
-            # for this bot's scale without wasting RAM on a 512MB dyno
-            # that's already tight with 13 multi-clients running.
-            workers=100,
+            workers=24,
             plugins={"root": "plugins"},
-            sleep_threshold=5,
+            sleep_threshold=10,
         )
 
     async def set_self(self):
