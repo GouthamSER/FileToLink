@@ -19,14 +19,14 @@ CHUNK_SIZE = 1024 * 1024
 
 # Number of chunks fetched in parallel by ONE HTTP stream.
 # Keep this moderate to reduce FloodWait risk.
-CONCURRENT_FETCHES = 3
+CONCURRENT_FETCHES = 2
 
 # Number of chunks kept ready in the HTTP pipeline.
-PREFETCH_SIZE = 6
+PREFETCH_SIZE = 3
 
 # Maximum simultaneous Telegram GetFile requests handled by ONE
 # Telegram client across ALL users/streams using that client.
-MAX_CLIENT_FETCHES = 8
+MAX_CLIENT_FETCHES = 3
 
 # How long file properties remain cached.
 CACHE_CLEAN_INTERVAL = 30 * 60
