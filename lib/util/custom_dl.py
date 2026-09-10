@@ -1,8 +1,9 @@
 import math
 import asyncio
 import logging
-from info import *
 from typing import Dict, Union
+
+from info import *
 from lib.bot import work_loads, multi_clients
 from pyrogram import Client, utils, raw
 from lib.util.file_properties import get_file_ids
@@ -11,55 +12,114 @@ from pyrogram.errors import AuthBytesInvalid, FloodWait, RPCError
 from lib.server.exceptions import FIleNotFound
 from pyrogram.file_id import FileId, FileType, ThumbnailSource
 
-PREFETCH_SIZE = 4
+
+# Tuned for 22–23 Telegram clients.
+# Telegram GetFile uses 1 MiB chunks.
+CHUNK_SIZE = 1024 * 1024
+
+# Number of chunks fetched in parallel by ONE HTTP stream.
+# Keep this moderate to reduce FloodWait risk.
 CONCURRENT_FETCHES = 3
 
+# Number of chunks kept ready in the HTTP pipeline.
+PREFETCH_SIZE = 6
+
+# Maximum simultaneous Telegram GetFile requests handled by ONE
+# Telegram client across ALL users/streams using that client.
+MAX_CLIENT_FETCHES = 8
+
+# How long file properties remain cached.
+CACHE_CLEAN_INTERVAL = 30 * 60
+
+# Strong references to active producer tasks.
 _BG_PRODUCER_TASKS: set = set()
+
+# One semaphore per Pyrogram client.
+_CLIENT_SEMAPHORES: Dict[object, asyncio.Semaphore] = {}
+
+# Protect media-session creation when many FDM Range requests arrive together.
+_CLIENT_SESSION_LOCKS: Dict[object, asyncio.Lock] = {}
+
+# Protect first-time metadata generation for the same message.
+_FILE_LOCKS: Dict[tuple, asyncio.Lock] = {}
+
+
+def _get_client_semaphore(client: Client) -> asyncio.Semaphore:
+    semaphore = _CLIENT_SEMAPHORES.get(client)
+    if semaphore is None:
+        semaphore = asyncio.Semaphore(MAX_CLIENT_FETCHES)
+        _CLIENT_SEMAPHORES[client] = semaphore
+    return semaphore
+
+
+def _get_session_lock(client: Client) -> asyncio.Lock:
+    lock = _CLIENT_SESSION_LOCKS.get(client)
+    if lock is None:
+        lock = asyncio.Lock()
+        _CLIENT_SESSION_LOCKS[client] = lock
+    return lock
+
+
+def _get_file_lock(client: Client, message_id: int) -> asyncio.Lock:
+    key = (client, message_id)
+    lock = _FILE_LOCKS.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _FILE_LOCKS[key] = lock
+    return lock
 
 
 class ByteStreamer:
     def __init__(self, client: Client):
-        self.clean_timer = 30 * 60
+        self.clean_timer = CACHE_CLEAN_INTERVAL
         self.client: Client = client
         self.cached_file_ids: Dict[int, FileId] = {}
         asyncio.create_task(self.clean_cache())
 
     async def get_file_properties(self, id: int) -> FileId:
-        if id not in self.cached_file_ids:
-            await self.generate_file_properties(id)
-            logging.debug(f"Cached file properties for message with ID {id}")
-        return self.cached_file_ids[id]
+        file_id = self.cached_file_ids.get(id)
+        if file_id is not None:
+            return file_id
+
+        lock = _get_file_lock(self.client, id)
+        async with lock:
+            file_id = self.cached_file_ids.get(id)
+            if file_id is not None:
+                return file_id
+            return await self.generate_file_properties(id)
 
     async def generate_file_properties(self, id: int) -> FileId:
         file_id = await get_file_ids(self.client, LOG_CHANNEL, id)
 
+        # Some multi-clients may not have access to LOG_CHANNEL.
+        # Fall back to the main client before declaring the file missing.
         if not file_id and self.client is not multi_clients.get(0):
-            logging.warning(
-                f"Client couldn't read message {id} from LOG_CHANNEL "
-                f"(likely missing admin access there) - retrying with main client."
-            )
             main_client = multi_clients.get(0)
             if main_client:
+                logging.warning(
+                    "Client could not read message %s from LOG_CHANNEL; "
+                    "retrying with main client.",
+                    id,
+                )
                 file_id = await get_file_ids(main_client, LOG_CHANNEL, id)
 
-        logging.debug(f"Generated file ID and Unique ID for message with ID {id}")
-
         if not file_id:
-            logging.debug(f"Message with ID {id} not found")
             raise FIleNotFound
 
         self.cached_file_ids[id] = file_id
-        logging.debug(f"Cached media message with ID {id}")
-        return self.cached_file_ids[id]
+        return file_id
 
-    async def generate_media_session(
-        self,
-        client: Client,
-        file_id: FileId
-    ) -> Session:
-        media_session = client.media_sessions.get(file_id.dc_id, None)
+    async def generate_media_session(self, client: Client, file_id: FileId) -> Session:
+        media_session = client.media_sessions.get(file_id.dc_id)
+        if media_session is not None:
+            return media_session
 
-        if media_session is None:
+        lock = _get_session_lock(client)
+        async with lock:
+            media_session = client.media_sessions.get(file_id.dc_id)
+            if media_session is not None:
+                return media_session
+
             if file_id.dc_id != await client.storage.dc_id():
                 media_session = Session(
                     client,
@@ -67,7 +127,7 @@ class ByteStreamer:
                     await Auth(
                         client,
                         file_id.dc_id,
-                        await client.storage.test_mode()
+                        await client.storage.test_mode(),
                     ).create(),
                     await client.storage.test_mode(),
                     is_media=True,
@@ -76,23 +136,21 @@ class ByteStreamer:
 
                 for _ in range(6):
                     exported_auth = await client.invoke(
-                        raw.functions.auth.ExportAuthorization(
-                            dc_id=file_id.dc_id
-                        )
+                        raw.functions.auth.ExportAuthorization(dc_id=file_id.dc_id)
                     )
                     try:
                         await media_session.send(
                             raw.functions.auth.ImportAuthorization(
                                 id=exported_auth.id,
-                                bytes=exported_auth.bytes
+                                bytes=exported_auth.bytes,
                             )
                         )
                         break
                     except AuthBytesInvalid:
                         logging.debug(
-                            f"Invalid authorization bytes for DC {file_id.dc_id}"
+                            "Invalid authorization bytes for DC %s",
+                            file_id.dc_id,
                         )
-                        continue
                 else:
                     await media_session.stop()
                     raise AuthBytesInvalid
@@ -106,17 +164,11 @@ class ByteStreamer:
                 )
                 await media_session.start()
 
-            logging.debug(f"Created media session for DC {file_id.dc_id}")
             client.media_sessions[file_id.dc_id] = media_session
-        else:
-            logging.debug(f"Using cached media session for DC {file_id.dc_id}")
-
-        return media_session
+            return media_session
 
     @staticmethod
-    async def get_location(
-        file_id: FileId,
-    ) -> Union[
+    async def get_location(file_id: FileId) -> Union[
         raw.types.InputPhotoFileLocation,
         raw.types.InputDocumentFileLocation,
         raw.types.InputPeerPhotoFileLocation,
@@ -127,7 +179,7 @@ class ByteStreamer:
             if file_id.chat_id > 0:
                 peer = raw.types.InputPeerUser(
                     user_id=file_id.chat_id,
-                    access_hash=file_id.chat_access_hash
+                    access_hash=file_id.chat_access_hash,
                 )
             else:
                 if file_id.chat_access_hash == 0:
@@ -137,31 +189,30 @@ class ByteStreamer:
                 else:
                     peer = raw.types.InputPeerChannel(
                         channel_id=utils.get_channel_id(file_id.chat_id),
-                        access_hash=file_id.chat_access_hash
+                        access_hash=file_id.chat_access_hash,
                     )
 
-            location = raw.types.InputPeerPhotoFileLocation(
+            return raw.types.InputPeerPhotoFileLocation(
                 peer=peer,
                 volume_id=file_id.volume_id,
                 local_id=file_id.local_id,
                 big=file_id.thumbnail_source == ThumbnailSource.CHAT_PHOTO_BIG,
             )
-        elif file_type == FileType.PHOTO:
-            location = raw.types.InputPhotoFileLocation(
-                id=file_id.media_id,
-                access_hash=file_id.access_hash,
-                file_reference=file_id.file_reference,
-                thumb_size=file_id.thumbnail_size,
-            )
-        else:
-            location = raw.types.InputDocumentFileLocation(
+
+        if file_type == FileType.PHOTO:
+            return raw.types.InputPhotoFileLocation(
                 id=file_id.media_id,
                 access_hash=file_id.access_hash,
                 file_reference=file_id.file_reference,
                 thumb_size=file_id.thumbnail_size,
             )
 
-        return location
+        return raw.types.InputDocumentFileLocation(
+            id=file_id.media_id,
+            access_hash=file_id.access_hash,
+            file_reference=file_id.file_reference,
+            thumb_size=file_id.thumbnail_size,
+        )
 
     async def _fetch_chunk(
         self,
@@ -171,71 +222,80 @@ class ByteStreamer:
         chunk_size: int,
         retries: int = 7,
     ) -> bytes:
+        semaphore = _get_client_semaphore(self.client)
         delay = 1
         last_exc = None
 
-        for attempt in range(retries):
+        for attempt in range(1, retries + 1):
             try:
-                result = await media_session.send(
-                    raw.functions.upload.GetFile(
-                        location=location,
-                        offset=offset,
-                        limit=chunk_size,
-                    ),
-                )
+                # This semaphore is PER TELEGRAM CLIENT, not per user.
+                async with semaphore:
+                    result = await media_session.send(
+                        raw.functions.upload.GetFile(
+                            location=location,
+                            offset=offset,
+                            limit=chunk_size,
+                        )
+                    )
 
                 if isinstance(result, raw.types.upload.File):
                     return result.bytes
-
                 return b""
 
-            except FloodWait as e:
-                wait = e.value + 1
+            except FloodWait as exc:
+                last_exc = exc
+                wait = int(exc.value) + 1
                 logging.warning(
-                    f"FloodWait: sleeping {wait}s (attempt {attempt + 1})"
+                    "Client %s FloodWait %ss at offset %s "
+                    "(attempt %s/%s)",
+                    self.client,
+                    wait,
+                    offset,
+                    attempt,
+                    retries,
                 )
                 await asyncio.sleep(wait)
-                last_exc = e
 
-            except (TimeoutError, asyncio.TimeoutError) as e:
+            except (TimeoutError, asyncio.TimeoutError) as exc:
+                last_exc = exc
                 logging.warning(
-                    f"Timeout at offset {offset} "
-                    f"(attempt {attempt + 1}/{retries}), "
-                    f"retrying in {delay}s"
+                    "Timeout at offset %s (attempt %s/%s), retrying in %ss",
+                    offset,
+                    attempt,
+                    retries,
+                    delay,
                 )
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 10)
-                last_exc = e
 
-            except (ConnectionError, ConnectionResetError, OSError) as e:
+            except (ConnectionError, ConnectionResetError, OSError) as exc:
+                last_exc = exc
                 logging.warning(
-                    f"Connection error at offset {offset} "
-                    f"(attempt {attempt + 1}/{retries}): {e}, "
-                    f"retrying in {delay}s"
+                    "Connection error at offset %s (attempt %s/%s), "
+                    "retrying in %ss: %s",
+                    offset,
+                    attempt,
+                    retries,
+                    delay,
+                    exc,
                 )
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 10)
-                last_exc = e
 
-            except RPCError as e:
+            except RPCError as exc:
+                last_exc = exc
                 logging.warning(
-                    f"Telegram RPC error at offset {offset} "
-                    f"(attempt {attempt + 1}/{retries}): {e}, "
-                    f"retrying in {delay}s"
+                    "Telegram RPC error at offset %s (attempt %s/%s), "
+                    "retrying in %ss: %s",
+                    offset,
+                    attempt,
+                    retries,
+                    delay,
+                    exc,
                 )
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 10)
-                last_exc = e
 
-            except Exception as e:
-                logging.error(
-                    f"Unexpected error fetching chunk at offset {offset}: {e}"
-                )
-                raise
-
-        logging.error(
-            f"All {retries} retries exhausted for chunk at offset {offset}"
-        )
         raise last_exc
 
     async def yield_file(
@@ -247,162 +307,130 @@ class ByteStreamer:
         last_part_cut: int,
         part_count: int,
         chunk_size: int,
-    ) -> Union[str, None]:
-        client = self.client
-        logging.debug(f"Starting to yield file with client {index}.")
+    ):
+        """
+        Ordered async generator for Telegram -> HTTP streaming.
 
-        try:
-            media_session = await self.generate_media_session(client, file_id)
-            location = await self.get_location(file_id)
-        except Exception:
-            work_loads[index] -= 1
-            raise
-
-        offsets = [
-            offset + i * chunk_size
-            for i in range(part_count)
-        ]
-
-        queue: asyncio.Queue = asyncio.Queue(maxsize=PREFETCH_SIZE)
-        _SENTINEL = object()
+        Client selection/load reservation is performed by routes.py before
+        this generator starts. This generator releases that reservation once
+        streaming ends or the browser/FDM connection closes.
+        """
+        producer_task = None
         stop_event = asyncio.Event()
 
-        async def producer():
-            try:
-                i = 0
-                total = len(offsets)
+        try:
+            media_session = await self.generate_media_session(self.client, file_id)
+            location = await self.get_location(file_id)
 
-                while i < total:
-                    if stop_event.is_set():
-                        break
+            offsets = [
+                offset + i * chunk_size
+                for i in range(part_count)
+            ]
 
-                    batch = offsets[i:i + CONCURRENT_FETCHES]
+            queue = asyncio.Queue(maxsize=PREFETCH_SIZE)
+            sentinel = object()
 
-                    results = await asyncio.gather(
-                        *[
-                            self._fetch_chunk(
-                                media_session,
-                                location,
-                                current_offset,
-                                chunk_size
-                            )
-                            for current_offset in batch
-                        ]
-                    )
-
-                    for chunk in results:
+            async def producer():
+                try:
+                    for pos in range(0, len(offsets), CONCURRENT_FETCHES):
                         if stop_event.is_set():
                             break
-                        await queue.put(chunk)
 
-                    i += len(batch)
+                        batch = offsets[pos:pos + CONCURRENT_FETCHES]
 
-            except asyncio.CancelledError:
-                raise
+                        results = await asyncio.gather(
+                            *(
+                                self._fetch_chunk(
+                                    media_session,
+                                    location,
+                                    chunk_offset,
+                                    chunk_size,
+                                )
+                                for chunk_offset in batch
+                            )
+                        )
 
-            except Exception as e:
-                logging.error(f"Prefetch producer error: {e}")
-                try:
-                    queue.put_nowait(e)
-                except asyncio.QueueFull:
-                    pass
+                        for chunk in results:
+                            if stop_event.is_set():
+                                break
+                            await queue.put(chunk)
 
-            finally:
-                try:
-                    queue.put_nowait(_SENTINEL)
-                except asyncio.QueueFull:
-                    pass
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    logging.error(
+                        "Prefetch producer error on client %s: %s",
+                        index,
+                        exc,
+                    )
+                    await queue.put(exc)
+                finally:
+                    await queue.put(sentinel)
 
-        producer_task = asyncio.create_task(producer())
-        _BG_PRODUCER_TASKS.add(producer_task)
-        producer_task.add_done_callback(_BG_PRODUCER_TASKS.discard)
+            producer_task = asyncio.create_task(producer())
+            _BG_PRODUCER_TASKS.add(producer_task)
+            producer_task.add_done_callback(_BG_PRODUCER_TASKS.discard)
 
-        current_part = 1
+            current_part = 1
 
-        try:
             while True:
                 item = await queue.get()
 
-                if item is _SENTINEL:
+                if item is sentinel:
                     break
 
                 if isinstance(item, Exception):
                     raise item
 
-                chunk: bytes = item
-
-                if not chunk:
+                if not item:
                     break
 
                 if part_count == 1:
-                    yield chunk[first_part_cut:last_part_cut]
+                    yield item[first_part_cut:last_part_cut]
                 elif current_part == 1:
-                    yield chunk[first_part_cut:]
+                    yield item[first_part_cut:]
                 elif current_part == part_count:
-                    yield chunk[:last_part_cut]
+                    yield item[:last_part_cut]
                 else:
-                    yield chunk
+                    yield item
 
                 current_part += 1
 
-        except GeneratorExit:
-            logging.debug(
-                "Client disconnected; stopping prefetch producer."
-            )
+        except (GeneratorExit, asyncio.CancelledError):
             stop_event.set()
             raise
-
-        except Exception as e:
-            logging.error(f"Error while streaming file: {e}")
-            stop_event.set()
-            raise
-
         finally:
             stop_event.set()
 
-            if not producer_task.done():
+            if producer_task is not None and not producer_task.done():
+                producer_task.cancel()
                 try:
-                    await asyncio.wait_for(
-                        asyncio.shield(producer_task),
-                        timeout=5
-                    )
-                except asyncio.TimeoutError:
-                    logging.warning(
-                        "Prefetch producer didn't stop in time; "
-                        "force-cancelling."
-                    )
-                    producer_task.cancel()
-                except (asyncio.CancelledError, Exception):
+                    await producer_task
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
                     pass
 
-            logging.debug(
-                f"Finished yielding file with {current_part} parts."
-            )
-            work_loads[index] -= 1
+            # Release the HTTP/client load reservation exactly once.
+            if index in work_loads and work_loads[index] > 0:
+                work_loads[index] -= 1
 
     async def clean_cache(self) -> None:
         while True:
             await asyncio.sleep(self.clean_timer)
             self.cached_file_ids.clear()
-            logging.debug("Cleaned the cache")
 
 
 async def cancel_all_producers() -> None:
     tasks = list(_BG_PRODUCER_TASKS)
 
-    if not tasks:
-        return
-
     for task in tasks:
         if not task.done():
             task.cancel()
 
-    await asyncio.gather(
-        *tasks,
-        return_exceptions=True
-    )
-
-    logging.info(
-        f"Cancelled {len(tasks)} "
-        f"in-flight stream producer task(s) for shutdown"
-    )
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+        logging.info(
+            "Cancelled %s active stream producer task(s)",
+            len(tasks),
+        )
