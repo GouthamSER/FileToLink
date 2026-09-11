@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 from os import environ
 
 id_pattern = re.compile(r'^\d+$')
@@ -29,6 +30,16 @@ if 'DYNO' in environ:
 else:
     ON_HEROKU = False
 URL = environ.get("URL", "")
+if URL:
+    # Auto-fix a common misconfiguration: someone pastes a health-check or
+    # other sub-path URL (e.g. "https://app.koyeb.app/health/") into this
+    # var instead of the bare app root. Every generated download/stream
+    # link is built as f"{URL}{id}?hash=...", so any extra path segment
+    # here makes EVERY single link 404 with no obvious cause. Strip down
+    # to scheme+host and force exactly one trailing slash so that class of
+    # mistake can't silently break every link again.
+    _parsed = urllib.parse.urlparse(URL if "://" in URL else f"https://{URL}")
+    URL = f"{_parsed.scheme}://{_parsed.netloc}/"
 
 # Admins, Channels & Users
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL') or 0)
