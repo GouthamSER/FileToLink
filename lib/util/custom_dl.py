@@ -220,6 +220,7 @@ class ByteStreamer:
         location,
         offset: int,
         chunk_size: int,
+        client_index,
         retries: int = 7,
     ) -> bytes:
         semaphore = _get_client_semaphore(self.client)
@@ -248,7 +249,7 @@ class ByteStreamer:
                 logging.warning(
                     "Client %s FloodWait %ss at offset %s "
                     "(attempt %s/%s)",
-                    self.client,
+                    client_index,
                     wait,
                     offset,
                     attempt,
@@ -259,7 +260,8 @@ class ByteStreamer:
             except (TimeoutError, asyncio.TimeoutError) as exc:
                 last_exc = exc
                 logging.warning(
-                    "Timeout at offset %s (attempt %s/%s), retrying in %ss",
+                    "Client %s Timeout at offset %s (attempt %s/%s), retrying in %ss",
+                    client_index,
                     offset,
                     attempt,
                     retries,
@@ -345,6 +347,7 @@ class ByteStreamer:
                                     location,
                                     chunk_offset,
                                     chunk_size,
+                                    index,
                                 )
                                 for chunk_offset in batch
                             )
@@ -433,4 +436,4 @@ async def cancel_all_producers() -> None:
         logging.info(
             "Cancelled %s active stream producer task(s)",
             len(tasks),
-        )
+                )
