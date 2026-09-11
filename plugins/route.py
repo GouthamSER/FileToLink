@@ -317,8 +317,17 @@ async def _render_page_route(request: web.Request, page: str):
         raise web.HTTPNotFound(text=e.message)
     except (AttributeError, BadStatusLine, ConnectionResetError):
         return web.Response(status=499)
+    except web.HTTPException:
+        # HTTPBadRequest/HTTPForbidden/etc raised deliberately above (or by
+        # aiohttp itself) ARE Exception subclasses, so without this they
+        # fall straight into the catch-all below: logged as CRITICAL,
+        # miscategorized as a 500 Internal Server Error instead of their
+        # real status, and fire detect_error()'s auto-restart-on-error
+        # trigger — all for a routine "bad path" hit. Let them through as
+        # the intended response instead of hiding what they actually were.
+        raise
     except Exception as e:
-        logging.critical(e.with_traceback(None))
+        logging.critical(f"Unhandled error on path {request.path!r}: {e}", exc_info=True)
         asyncio.create_task(detect_error(e, context="route_handler"))
         raise web.HTTPInternalServerError(text=str(e))
 
@@ -355,8 +364,11 @@ async def _download_route(request: web.Request):
         raise web.HTTPNotFound(text=e.message)
     except (AttributeError, BadStatusLine, ConnectionResetError):
         return web.Response(status=499)
+    except web.HTTPException:
+        # Same fix as _render_page_route above — see that comment.
+        raise
     except Exception as e:
-        logging.critical(e.with_traceback(None))
+        logging.critical(f"Unhandled error on path {request.path!r}: {e}", exc_info=True)
         asyncio.create_task(detect_error(e, context="route_handler"))
         raise web.HTTPInternalServerError(text=str(e))
 
