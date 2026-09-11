@@ -315,7 +315,7 @@ async def _render_page_route(request: web.Request, page: str):
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-    except (AttributeError, BadStatusLine, ConnectionResetError):
+    except (AttributeError, BadStatusLine, ConnectionError, asyncio.CancelledError):
         return web.Response(status=499)
     except web.HTTPException:
         # HTTPBadRequest/HTTPForbidden/etc raised deliberately above (or by
@@ -362,7 +362,7 @@ async def _download_route(request: web.Request):
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-    except (AttributeError, BadStatusLine, ConnectionResetError):
+    except (AttributeError, BadStatusLine, ConnectionError, asyncio.CancelledError):
         return web.Response(status=499)
     except web.HTTPException:
         # Same fix as _render_page_route above — see that comment.
@@ -530,7 +530,7 @@ async def media_streamer(
         try:
             async for chunk in body:
                 await response.write(chunk)
-        except (ConnectionResetError, BrokenPipeError, asyncio.CancelledError):
+        except (ConnectionError, asyncio.CancelledError):
             logging.debug(
                 "HTTP client disconnected from client %s",
                 index,
@@ -540,7 +540,7 @@ async def media_streamer(
 
         try:
             await response.write_eof()
-        except (ConnectionResetError, BrokenPipeError):
+        except (ConnectionError, asyncio.CancelledError):
             pass
 
         return response
