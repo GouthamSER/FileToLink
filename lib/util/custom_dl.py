@@ -26,7 +26,7 @@ PREFETCH_SIZE = 3
 
 # Maximum simultaneous Telegram GetFile requests handled by ONE
 # Telegram client across ALL users/streams using that client.
-MAX_CLIENT_FETCHES = 3
+MAX_CLIENT_FETCHES = 2
 
 # How long file properties remain cached.
 CACHE_CLEAN_INTERVAL = 30 * 60
