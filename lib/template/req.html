@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{file_name}} | FILE ² LINK</title>
+<title>{{file_name}} | File ² Link</title>
 
 <!-- Fonts & Icons -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,14 +16,14 @@
 
 <style>
   :root {
-    --bg-main: #0f0f0f;
-    --bg-card: #1e1e1e;
-    --bg-btn: #1a1a1a;
-    --bg-btn-hover: #2a2a2a;
+    --bg-main: #0b0b0e;
+    --bg-card: #141419;
+    --bg-btn: #18181d;
+    --accent-purple: #8c3ce6;
+    --accent-hover: #7b29d6;
     --text-main: #ffffff;
-    --text-muted: #aaaaaa;
-    --accent-purple: #8b5cf6; /* Matches the player and logo accent */
-    --plyr-color-main: #8b5cf6; /* Forces Plyr to use purple */
+    --text-muted: #8b8b93;
+    --plyr-color-main: #8c3ce6;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,121 +36,243 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Header / Navbar */
+  /* Header */
   header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
     background-color: var(--bg-main);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    flex-wrap: wrap;
-    gap: 12px;
   }
   
   .brand {
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2rem;
     font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-  
-  .brand .purple { color: var(--accent-purple); }
-  
-  .nav-links {
-    display: flex;
-    gap: 16px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-  
-  .nav-links a { color: inherit; text-decoration: none; transition: 0.2s; cursor: pointer; }
-  .nav-links a:hover { color: var(--text-main); }
-
-  /* Main Container */
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
+    color: var(--accent-purple);
   }
 
-  /* Video Player Wrapper */
-  .video-wrapper {
-    margin-bottom: 24px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-
-  /* File Info Card */
-  .info-card {
-    background-color: var(--bg-card);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-  
-  .info-card h2 {
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-    font-weight: 600;
-  }
-  
-  .info-row { margin-bottom: 16px; }
-  .info-row:last-child { margin-bottom: 0; }
-  
-  .info-label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-  }
-  
-  .info-value {
-    font-size: 0.95rem;
-    word-break: break-all;
-  }
-
-  /* Buttons Stack */
-  .btn-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 40px;
-  }
-  
-  .action-btn {
+  .brand-icon {
+    width: 20px;
+    height: 20px;
+    background-color: var(--accent-purple);
+    border-radius: 4px;
+    transform: rotate(45deg);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    width: 100%;
-    background-color: var(--bg-btn);
+  }
+  .brand-icon::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #000;
+    border-radius: 50%;
+  }
+
+  .brand span { color: #fff; }
+  
+  .share-btn {
+    background: transparent;
     color: var(--text-main);
-    border: none;
-    border-radius: 8px;
-    padding: 16px;
-    font-size: 0.95rem;
+    border: 1px solid #333;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
+  }
+
+  /* Main Container */
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 16px 24px 16px;
+  }
+
+  /* Video Player */
+  .video-wrapper {
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  /* Title & Badges */
+  .file-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+
+  .badges {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .badge {
+    background-color: var(--bg-card);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Primary Action Buttons */
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     text-decoration: none;
-    transition: background-color 0.2s;
+    transition: background 0.2s;
+  }
+
+  .btn-download {
+    background-color: var(--accent-purple);
+    color: #fff;
+  }
+  .btn-download:hover { background-color: var(--accent-hover); }
+
+  .btn-copy {
+    background-color: var(--bg-card);
+    color: #fff;
+  }
+  .btn-copy:hover { background-color: #1a1a20; }
+
+  /* Info Card */
+  .info-card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
   }
   
-  .action-btn:hover { background-color: var(--bg-btn-hover); }
+  .info-row {
+    display: flex;
+    margin-bottom: 20px;
+  }
+  .info-row:last-child { margin-bottom: 0; }
   
-  .action-btn i { font-size: 1.1rem; }
-  .icon-blue { color: #3b82f6; }
-  .icon-orange { color: #f97316; }
-  .icon-multi { background: linear-gradient(45deg, #3b82f6, #10b981, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .info-label {
+    width: 80px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  
+  .info-value {
+    font-size: 0.9rem;
+    color: #e4e4e7;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+
+  /* External Players Section */
+  .section-title {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  .players-list {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .player-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    text-decoration: none;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .player-item:last-child { border-bottom: none; }
+  .player-item:hover { background-color: #1a1a20; }
+
+  .app-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-right: 16px;
+    flex-shrink: 0;
+  }
+
+  .icon-vlc { background-color: #ff7e00; color: #fff; }
+  .icon-mx { background-color: #2196f3; color: #fff; }
+  .icon-nplayer { background-color: #222; color: #fff; }
+  /* Rainbow gradient for nPlayer icon */
+  .icon-nplayer i {
+    background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .player-info { flex-grow: 1; }
+  .player-info h4 { font-size: 0.95rem; font-weight: 500; margin-bottom: 2px; }
+  .player-info p { font-size: 0.75rem; color: var(--text-muted); }
+
+  .player-arrow { color: #444; font-size: 0.9rem; }
 
   /* Footer */
   footer {
     text-align: center;
-    padding: 20px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    border-top: 1px solid rgba(255,255,255,0.05);
+    padding: 40px 20px;
     margin-top: 20px;
+  }
+  
+  .footer-brand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .footer-brand span { color: var(--accent-purple); }
+  
+  .copyright {
+    font-size: 0.75rem;
+    color: var(--text-muted);
   }
 
   /* Toast Notification */
@@ -159,10 +281,10 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: var(--accent-purple);
+    background: #333;
     color: #fff;
-    padding: 10px 20px;
-    border-radius: 20px;
+    padding: 12px 24px;
+    border-radius: 30px;
     font-size: 0.9rem;
     opacity: 0;
     pointer-events: none;
@@ -175,67 +297,98 @@
 <body>
 
   <header>
-    <div class="brand">FILE ² <span class="purple">LINK</span></div>
-    <div class="nav-links">
-      <a href="#player-section">Player</a>
-      <a href="#info-section">File Info</a>
-      <a href="#copyright-section">Copyright</a>
+    <div class="brand">
+      <div class="brand-icon"></div>
+      <span>File ² Link</span>
     </div>
+    <button class="share-btn" onclick="copyUrl()">
+      <i class="fa-solid fa-arrow-up-from-bracket"></i> Share
+    </button>
   </header>
 
   <div class="container">
     
     <!-- Video Player -->
-    <div id="player-section" class="video-wrapper">
+    <div class="video-wrapper">
       <video id="player" playsinline controls crossorigin>
-        <!-- The browser will attempt to play this directly -->
         <source src="{{file_url}}" type="video/mp4">
       </video>
     </div>
 
-    <!-- File Information Card -->
-    <div id="info-section" class="info-card">
-      <h2>File Information</h2>
-      
-      <div class="info-row">
-        <div class="info-label">File Name :</div>
-        <div class="info-value">{{file_name}}</div>
-      </div>
-      
-      <div class="info-row">
-        <div class="info-label">File Size :</div>
-        <!-- Note: If your backend provides a {{file_size}} variable, replace 'Unknown Size' with it -->
-        <div class="info-value">{{file_size}}</div> 
-      </div>
+    <!-- Title & Badges -->
+    <div class="file-title">{{file_name}}</div>
+    
+    <div class="badges">
+      <div class="badge"><i class="fa-solid fa-download"></i> {{file_size}}</div>
+      <div class="badge"><i class="fa-solid fa-play"></i> Video Stream</div>
     </div>
 
     <!-- Action Buttons -->
-    <div class="btn-stack">
-      <button class="action-btn" onclick="downloadFile()">
-        <i class="fa-solid fa-download icon-blue"></i> Download Video
+    <div class="action-buttons">
+      <button class="btn btn-download" onclick="downloadFile()">
+        <i class="fa-solid fa-download"></i> Download
       </button>
-      
-      <button class="action-btn" onclick="copyUrl()">
-        <i class="fa-solid fa-link icon-blue"></i> Copy Link
+      <button class="btn btn-copy" onclick="copyUrl()">
+        <i class="fa-solid fa-link"></i> Copy Link
       </button>
-      
-      <button class="action-btn" onclick="openVLC()">
-        <i class="fa-brands fa-vimeo-v icon-orange" style="transform: rotate(180deg);"></i> Watch in VLC (Android Only)
-      </button>
-      
-      <button class="action-btn" onclick="openMX()">
-        <i class="fa-solid fa-play icon-blue"></i> Watch in MX Player
-      </button>
+    </div>
 
-      <button class="action-btn" onclick="openNPlayer()">
-        <i class="fa-solid fa-caret-right icon-multi"></i> Watch in nPlayer
-      </button>
+    <!-- File Information Card -->
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-label">NAME</div>
+        <div class="info-value">{{file_name}}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">SIZE</div>
+        <div class="info-value">{{file_size}}</div>
+      </div>
+    </div>
+
+    <!-- External Players -->
+    <div class="section-title">Open in External Player</div>
+    
+    <div class="players-list">
+      <!-- VLC -->
+      <a class="player-item" onclick="openVLC()">
+        <div class="app-icon icon-vlc"><i class="fa-solid fa-traffic-cone"></i></div>
+        <div class="player-info">
+          <h4>VLC</h4>
+          <p>Android only</p>
+        </div>
+        <i class="fa-solid fa-chevron-right player-arrow"></i>
+      </a>
+      
+      <!-- MX Player -->
+      <a class="player-item" onclick="openMX()">
+        <div class="app-icon icon-mx"><i class="fa-solid fa-play"></i></div>
+        <div class="player-info">
+          <h4>MX Player</h4>
+          <p>Android & iOS</p>
+        </div>
+        <i class="fa-solid fa-chevron-right player-arrow"></i>
+      </a>
+      
+      <!-- nPlayer -->
+      <a class="player-item" onclick="openNPlayer()">
+        <div class="app-icon icon-nplayer"><i class="fa-solid fa-play"></i></div>
+        <div class="player-info">
+          <h4>nPlayer</h4>
+          <p>iOS & macOS</p>
+        </div>
+        <i class="fa-solid fa-chevron-right player-arrow"></i>
+      </a>
     </div>
 
   </div>
 
-  <footer id="copyright-section">
-    Copyright © 2026 Goutham Josh. All Rights Reserved.
+  <footer>
+    <div class="footer-brand">
+      File ² <span>Link</span>
+    </div>
+    <div class="copyright">
+      © 2026 Goutham Josh. All Rights Reserved.
+    </div>
   </footer>
 
   <div id="toast" class="toast">Link Copied!</div>
@@ -243,7 +396,6 @@
   <!-- Plyr Video Player JS -->
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
   <script>
-    // Initialize the purple video player
     const player = new Plyr('#player', {
       controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'fullscreen']
     });
@@ -268,17 +420,16 @@
       });
     }
 
-    // Android Intent Links for external players (crucial for MKV support)
+    // Android/iOS Intents
     function openVLC() {
-      window.location.href = `vlc://${fileUrl}`;
+      window.location.href = `intent:${fileUrl}#Intent;package=org.videolan.vlc;type=video/*;end;`;
     }
 
     function openMX() {
-      window.location.href = `intent:${fileUrl}#Intent;package=com.mxtech.videoplayer.ad;end`;
+      window.location.href = `intent:${fileUrl}#Intent;package=com.mxtech.videoplayer.ad;type=video/*;end;`;
     }
 
     function openNPlayer() {
-      // Basic fallback scheme for nPlayer
       window.location.href = `nplayer-${fileUrl}`; 
     }
   </script>
