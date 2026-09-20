@@ -8,7 +8,7 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ParseMode
-from info import ADMINS
+from info import ADMINS, is_admin
 from database.users_chats_db import db
 
 # Assuming you have a start time variable somewhere in your bot
@@ -40,7 +40,7 @@ def humanbytes(size):
 @Client.on_message(filters.command("stats") & filters.private)
 async def stats(client: Client, message: Message):
     # Allow only admins
-    if message.from_user.id not in ADMINS:
+    if not is_admin(message.from_user.id, message.from_user.username):
         return await message.reply_text("❌ You are not authorized to use this command.")
     
     try:
@@ -71,7 +71,7 @@ async def stats(client: Client, message: Message):
         ram_percent = ram_info.percent
         
         # Get disk usage
-        disk_usage = await asyncio.to_thread(psutil.disk_usage, '/')
+        disk_usage = await asyncio.to_thread(psutil.disk_usage, os.path.abspath(os.sep))
         total_disk = humanbytes(disk_usage.total)
         used_disk = humanbytes(disk_usage.used)
         free_disk = humanbytes(disk_usage.free)
@@ -113,7 +113,7 @@ async def stats(client: Client, message: Message):
 # Callback query handler for refresh and close buttons
 @Client.on_callback_query(filters.regex("^(refresh_stats|close_stats)$"))
 async def stats_callback(client: Client, callback_query):
-    if callback_query.from_user.id not in ADMINS:
+    if not is_admin(callback_query.from_user.id, callback_query.from_user.username):
         return await callback_query.answer("❌ You are not authorized!", show_alert=True)
     
     if callback_query.data == "close_stats":
@@ -138,7 +138,7 @@ async def stats_callback(client: Client, callback_query):
             ram_used = humanbytes(ram_info.used)
             ram_free = humanbytes(ram_info.available)
             ram_percent = ram_info.percent
-            disk_usage = await asyncio.to_thread(psutil.disk_usage, '/')
+            disk_usage = await asyncio.to_thread(psutil.disk_usage, os.path.abspath(os.sep))
             total_disk = humanbytes(disk_usage.total)
             used_disk = humanbytes(disk_usage.used)
             free_disk = humanbytes(disk_usage.free)
@@ -189,7 +189,7 @@ async def send_how_to(client, message):
 # RESTART BOT COMMAND
 @Client.on_message(filters.command("restart") & filters.private)
 async def restart_bot(client, message):
-    if message.from_user.id not in ADMINS:
+    if not is_admin(message.from_user.id, message.from_user.username):
         return await message.reply_text("❌ You are not authorized.")
 
     await message.reply_text("♻️ <b>Bot is restarting...</b>")

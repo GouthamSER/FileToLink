@@ -9,6 +9,8 @@ MAX_DELAY = 3600
 
 async def self_ping_task():
     """Keep-alive ping with connection pooling."""
+    if not URL:
+        return
     retry_delay = RETRY_DELAY
     
     # Create connector inside async function where loop exists

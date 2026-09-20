@@ -1,3 +1,5 @@
+import os
+import mimetypes
 import jinja2
 import functools
 from info import *
@@ -9,17 +11,10 @@ import urllib.parse
 import logging
 
 
-# Compile each template ONCE and cache it — previously every single page
-# view re-read the HTML file off disk AND recompiled the Jinja AST from
-# scratch, discarded immediately after rendering. Under real traffic
-# (every /watch/ and /dl/ hit) that's pure repeated CPU+memory churn for
-# zero benefit since these files never change while the process is
-# running. lru_cache keeps at most 2 compiled templates (req.html,
-# dl.html) alive for the process lifetime — a few KB total, negligible,
-# and strictly less work than the old recompile-every-request behavior.
-@functools.lru_cache(maxsize=2)
+# Compile each template ONCE and cache it
+@functools.lru_cache(maxsize=4)
 def _get_template(template_file: str) -> jinja2.Template:
-    with open(template_file) as f:
+    with open(template_file, "r", encoding="utf-8") as f:
         return jinja2.Template(f.read())
 
 
@@ -32,39 +27,50 @@ async def render_page(id, secure_hash, page="watch"):
         raise InvalidHash
 
     raw_name = file_data.file_name or f"file_{secure_hash}"
+    file_ext = os.path.splitext(raw_name)[1].lower().lstrip(".")
+    mime_type = file_data.mime_type or ""
+    if not mime_type:
+        mime_type = mimetypes.guess_type(raw_name)[0] or "application/octet-stream"
 
-    # quote_plus encodes spaces as '+' — that's query-string syntax, not
-    # valid for a URL *path* segment. Some Android download managers (and
-    # anything doing a naive percent-decode without query-unquote) read
-    # that '+' back literally instead of a space, corrupting the saved
-    # filename. quote() with '%20' is the spec-correct choice for a path.
+    tag = mime_type.split("/")[0].strip().lower()
+    video_exts = {"mp4", "mkv", "webm", "avi", "mov", "flv", "m4v", "3gp", "ts", "m2ts", "wmv", "ogv"}
+    audio_exts = {"mp3", "aac", "wav", "flac", "ogg", "m4a", "opus", "wma"}
+
+    is_video = tag == "video" or file_ext in video_exts
+    is_audio = tag == "audio" or file_ext in audio_exts
+    media_type = "video" if is_video else ("audio" if is_audio else "file")
+
     src = urllib.parse.urljoin(
         URL,
         f"{id}/{urllib.parse.quote(raw_name, safe='')}?hash={secure_hash}",
     )
+    watch_src = urllib.parse.urljoin(
+        URL,
+        f"watch/{id}/{urllib.parse.quote(raw_name, safe='')}?hash={secure_hash}",
+    )
 
-    # page="watch" -> always the player page, page="dl" -> always the
-    # download page, regardless of mime type. This is what the Telegram
-    # buttons/captions ask for explicitly (Watch vs Download intent), so
-    # don't let mime-sniffing override the caller's choice.
-    tag = (file_data.mime_type or "").split("/")[0].strip()
     if page == "dl":
         template_file = "lib/template/dl.html"
     elif page == "watch":
-        template_file = "lib/template/req.html" if tag in ["video", "audio"] else "lib/template/dl.html"
+        template_file = "lib/template/req.html" if (is_video or is_audio) else "lib/template/dl.html"
     else:
-        template_file = "lib/template/req.html" if tag in ["video", "audio"] else "lib/template/dl.html"
+        template_file = "lib/template/req.html" if (is_video or is_audio) else "lib/template/dl.html"
 
     file_size = humanbytes(file_data.file_size)
-
     template = _get_template(template_file)
-
     file_name = raw_name.replace("_", " ")
 
     return template.render(
         file_name=file_name,
         file_name_raw=raw_name,
         file_url=src,
+        watch_url=watch_src,
+        dl_url=src,
         file_size=file_size,
         file_unique_id=file_data.unique_id,
+        file_ext=file_ext.upper() if file_ext else "FILE",
+        mime_type=mime_type,
+        media_type=media_type,
+        is_video=is_video,
+        is_audio=is_audio,
     )

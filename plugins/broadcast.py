@@ -14,6 +14,8 @@ async def pm_broadcast(bot, message):
     b_msg = message.reply_to_message
     try:
         users = await db.get_all_users()
+        if not users:
+            return await message.reply_text("❌ No users found in database, or database is not connected.")
         sts = await message.reply_text('Broadcasting your messages...')
         start_time = time.time()
         total_users = await db.total_users_count()
@@ -53,22 +55,25 @@ async def pm_broadcast(bot, message):
 # Ask Doubt on telegram @m_goutham_josh
 
 async def broadcast_messages(user_id, message):
-    try:
-        await message.copy(chat_id=user_id)
-        return True, "Success"
-    except FloodWait as e:
-        await asyncio.sleep(e.x)
-        return await broadcast_messages(user_id, message)
-    except InputUserDeactivated:
-        await db.delete_user(int(user_id))
-        logging.info(f"{user_id}-Removed from Database, since deleted account.")
-        return False, "Deleted"
-    except UserIsBlocked:
-        logging.info(f"{user_id} -Blocked the bot.")
-        return False, "Blocked"
-    except PeerIdInvalid:
-        await db.delete_user(int(user_id))
-        logging.info(f"{user_id} - PeerIdInvalid")
-        return False, "Error"
-    except Exception as e:
-        return False, "Error"
+    for _ in range(3):
+        try:
+            await message.copy(chat_id=user_id)
+            return True, "Success"
+        except FloodWait as e:
+            wait_time = int(getattr(e, "value", getattr(e, "x", 1))) + 1
+            await asyncio.sleep(wait_time)
+        except InputUserDeactivated:
+            await db.delete_user(int(user_id))
+            logging.info(f"{user_id} - Removed from Database, since deleted account.")
+            return False, "Deleted"
+        except UserIsBlocked:
+            logging.info(f"{user_id} - Blocked the bot.")
+            return False, "Blocked"
+        except PeerIdInvalid:
+            await db.delete_user(int(user_id))
+            logging.info(f"{user_id} - PeerIdInvalid")
+            return False, "Error"
+        except Exception as e:
+            logging.error(f"Error broadcasting to {user_id}: {e}")
+            return False, "Error"
+    return False, "Error"

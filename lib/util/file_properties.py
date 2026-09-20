@@ -22,22 +22,39 @@ async def get_file_ids(client: Client, chat_id: int, id: int) -> Optional[FileId
     if message.empty:
         raise FIleNotFound
     media = get_media_from_message(message)
+    if not media:
+        raise FIleNotFound
     file_unique_id = await parse_file_unique_id(message)
     file_id = await parse_file_id(message)
+    if not file_id:
+        raise FIleNotFound
+
     mime_type = getattr(media, "mime_type", "") or ""
-    # media.file_name can exist as an actual None (photos, voice notes, video
-    # notes, some videos) rather than being absent, so getattr's default
-    # doesn't help - guard explicitly and synthesize a name.
+    if not mime_type:
+        media_type = getattr(message, "media", None)
+        type_name = media_type.value if media_type else ""
+        if type_name == "photo":
+            mime_type = "image/jpeg"
+        elif type_name in ("video", "video_note", "animation"):
+            mime_type = "video/mp4"
+        elif type_name in ("audio", "voice"):
+            mime_type = "audio/ogg" if type_name == "voice" else "audio/mpeg"
+        elif type_name == "sticker":
+            mime_type = "image/webp"
+
     file_name = getattr(media, "file_name", None) or None
     if not file_name:
-        ext = mimetypes.guess_extension(mime_type) or ""
-        if not ext and mime_type.startswith("video"):
-            ext = ".mp4"
-        elif not ext and mime_type.startswith("audio"):
-            ext = ".mp3"
-        elif not ext and mime_type.startswith("image"):
-            ext = ".jpg"
-        file_name = f"file_{file_unique_id or id}{ext}"
+        file_name = get_name(message)
+        if not file_name:
+            ext = mimetypes.guess_extension(mime_type) or ""
+            if not ext and mime_type.startswith("video"):
+                ext = ".mp4"
+            elif not ext and mime_type.startswith("audio"):
+                ext = ".mp3"
+            elif not ext and mime_type.startswith("image"):
+                ext = ".jpg"
+            file_name = f"file_{file_unique_id or id}{ext}"
+
     setattr(file_id, "file_size", getattr(media, "file_size", 0))
     setattr(file_id, "mime_type", mime_type)
     setattr(file_id, "file_name", file_name)
@@ -67,7 +84,26 @@ def get_hash(media_msg: Message) -> str:
 
 def get_name(media_msg: Message) -> str:
     media = get_media_from_message(media_msg)
-    return getattr(media, 'file_name', None) or ""
+    if not media:
+        return ""
+    file_name = getattr(media, 'file_name', None)
+    if file_name:
+        return file_name
+    mime_type = getattr(media, 'mime_type', '') or ''
+    media_type = getattr(media_msg, 'media', None)
+    type_name = media_type.value if media_type else 'file'
+    ext = mimetypes.guess_extension(mime_type) or ''
+    if not ext:
+        if type_name == 'photo' or mime_type.startswith('image'):
+            ext = '.jpg'
+        elif type_name in ('video', 'video_note', 'animation') or mime_type.startswith('video'):
+            ext = '.mp4'
+        elif type_name in ('audio', 'voice') or mime_type.startswith('audio'):
+            ext = '.mp3' if type_name == 'audio' else '.ogg'
+        elif type_name == 'sticker':
+            ext = '.webp'
+    unique_id = getattr(media, 'file_unique_id', '')
+    return f"{type_name}_{unique_id[:8]}{ext}" if unique_id else f"{type_name}{ext}"
 
 def get_media_file_size(m):
     media = get_media_from_message(m)

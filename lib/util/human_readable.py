@@ -1,12 +1,16 @@
 def humanbytes(size):
-    # https://stackoverflow.com/a/49361727/4723940
-    # 2**10 = 1024
     if not size:
-        return ""
-    power = 2**10
+        return "0 B"
+    try:
+        size = float(size)
+    except (ValueError, TypeError):
+        return "0 B"
+    if size <= 0:
+        return "0 B"
+    power = 1024
     n = 0
-    Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
-    while size > power:
+    units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
+    while size >= power and n < len(units) - 1:
         size /= power
         n += 1
-    return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
+    return f"{size:.2f} {units[n]}" if n > 0 else f"{int(size)} {units[n]}"

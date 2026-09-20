@@ -1,16 +1,15 @@
-import random, re, urllib.parse
+import random, re, urllib.parse, html, time
 import humanize
 from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, FSUB_CHANNEL, ADMINS
+from info import URL, LOG_CHANNEL, SHORTLINK, FSUB_CHANNEL, ADMINS, is_admin
 from urllib.parse import quote_plus
-from lib.util.file_properties import get_name, get_hash, get_media_file_size
+from lib.util.file_properties import get_name, get_hash, get_media_file_size, get_media_from_message
 from lib.util.human_readable import humanbytes
 from database.users_chats_db import db
 from utils import temp, get_shortlink
-import time
 
 try:
     from pyrogram.enums import ButtonStyle
@@ -154,16 +153,20 @@ async def stream_start(client, message):
     )
 
     try:
-        file = getattr(message, message.media.value)
-        filename = file.file_name
-        fileid = file.file_id
+        media = get_media_from_message(message)
+        if not media:
+            await status_msg.edit_text("<i>❌ No supported media found in message.</i>", parse_mode=enums.ParseMode.HTML)
+            return
+
+        fileid = getattr(media, "file_id", None)
+        if not fileid:
+            await status_msg.edit_text("<i>❌ Unable to extract file ID.</i>", parse_mode=enums.ParseMode.HTML)
+            return
+
+        filename = get_name(message) or "file"
         username = message.from_user.mention
 
         log_msg = await client.send_cached_media(chat_id=LOG_CHANNEL, file_id=fileid)
-
-        edited_name = get_name(log_msg)
-        edited_name = re.sub(r'[^\w\.-]', '', edited_name)
-        edited_name = edited_name.replace(" ", ".")
 
         file_hash = get_hash(log_msg)
 
@@ -175,11 +178,12 @@ async def stream_start(client, message):
             download = await get_shortlink(f"{URL}{log_msg.id}?hash={file_hash}")
 
         # Send log message to log channel
+        safe_filename = html.escape(filename)
         await log_msg.reply_text(
             text=(
                 f"•• Lɪɴᴋ ɢᴇɴᴇʀᴀᴛᴇᴅ ꜰᴏʀ ɪᴅ #{user_id} \n"
                 f"•• ᴜꜱᴇʀɴᴀᴍᴇ : {username} \n\n"
-                f"•• File Name : {filename}"
+                f"•• File Name : {safe_filename}"
             ),
             quote=True,
             disable_web_page_preview=True,
@@ -189,6 +193,7 @@ async def stream_start(client, message):
                     styled_button("🖥️ Watch online 🖥️", style=ButtonStyle.SUCCESS if HAS_BUTTON_STYLE else None, url=stream),
                 ]
             ]),
+            parse_mode=enums.ParseMode.HTML,
         )
 
         # Updated Message Text Formatting with Blockquotes
@@ -196,7 +201,7 @@ async def stream_start(client, message):
         bot_username = f"@{bot_me.username}" if bot_me.username else temp.U_NAME
 
         msg_text = (
-            f"<blockquote>▶ <b>File Name :</b> <i>{filename}</i>\n\n"
+            f"<blockquote>▶ <b>File Name :</b> <i>{safe_filename}</i>\n\n"
             f"▶ <b>File Size :</b> {humanbytes(get_media_file_size(message))}</blockquote>\n\n"
             f"<blockquote>➞ <b>Download :</b> <a href='{download}'>{download}</a>\n\n"
             f"➞ <b>Watch Online :</b> <a href='{stream}'>{stream}</a></blockquote>\n\n"
@@ -224,7 +229,7 @@ async def stream_start(client, message):
 
     except Exception as e:
         # If something fails, update the processing message to reflect the error
-        await status_msg.edit_text(f"<i>Sorry, an error occurred while generating the link:</i> {str(e)}")
+        await status_msg.edit_text(f"<i>Sorry, an error occurred while generating the link:</i> {html.escape(str(e))}", parse_mode=enums.ParseMode.HTML)
         print(f"Error in stream_start: {e}")
 
 
@@ -238,7 +243,7 @@ _REVOKE_CONFIRM_WINDOW = 10  # seconds
 @Client.on_callback_query(filters.regex(r"^rv_(\d+)_(\d+)$"))
 async def revoke_tap(client, callback_query: CallbackQuery):
     log_msg_id, owner_id = map(int, callback_query.matches[0].groups())
-    if callback_query.from_user.id != owner_id and callback_query.from_user.id not in ADMINS:
+    if callback_query.from_user.id != owner_id and not is_admin(callback_query.from_user.id, callback_query.from_user.username):
         await callback_query.answer("❌ This isn't your file.", show_alert=True)
         return
 

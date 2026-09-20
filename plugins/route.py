@@ -281,12 +281,12 @@ async def root_route_handler(request):
     return web.Response(text=html_content, content_type="text/html")
 
 
-@routes.get(r"/watch/{path:\S+}", allow_head=True)
+@routes.get(r"/watch/{path:.+}", allow_head=True)
 async def stream_handler(request: web.Request):
     return await _render_page_route(request, page="watch")
 
 
-@routes.get(r"/dl/{path:\S+}", allow_head=True)
+@routes.get(r"/dl/{path:.+}", allow_head=True)
 async def download_direct_handler(request: web.Request):
     return await _download_route(request)
 
@@ -300,7 +300,7 @@ async def _render_page_route(request: web.Request, page: str):
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            match = re.search(r"(\d+)(?:/\S+)?", path)
+            match = re.search(r"(\d+)(?:/.*)?", path)
             if not match:
                 raise web.HTTPBadRequest(text="Invalid file path")
             message_id = int(match.group(1))
@@ -332,7 +332,7 @@ async def _render_page_route(request: web.Request, page: str):
         raise web.HTTPInternalServerError(text=str(e))
 
 
-@routes.get(r"/{path:\S+}", allow_head=True)
+@routes.get(r"/{path:.+}", allow_head=True)
 async def download_handler(request: web.Request):
     return await _download_route(request)
 
@@ -346,7 +346,7 @@ async def _download_route(request: web.Request):
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            match = re.search(r"(\d+)(?:/\S+)?", path)
+            match = re.search(r"(\d+)(?:/.*)?", path)
             if not match:
                 raise web.HTTPBadRequest(text="Invalid file path")
             message_id = int(match.group(1))
@@ -488,27 +488,29 @@ async def media_streamer(
                 mime_type = "application/octet-stream"
                 file_name = f"{secrets.token_hex(2)}.unknown"
 
+        clean_name = file_name.replace('"', '_')
         try:
-            file_name.encode("ascii")
-            disposition = f'attachment; filename="{file_name}"'
+            clean_name.encode("ascii")
+            disposition = f'attachment; filename="{clean_name}"'
         except UnicodeEncodeError:
-            encoded = urllib.parse.quote(file_name, safe="")
+            encoded = urllib.parse.quote(clean_name, safe="")
             disposition = f"attachment; filename*=UTF-8''{encoded}"
 
         status = 206 if range_header else 200
 
+        headers = {
+            "Content-Type": mime_type,
+            "Content-Length": str(req_length),
+            "Content-Disposition": disposition,
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "no-store",
+        }
+        if range_header:
+            headers["Content-Range"] = f"bytes {from_bytes}-{until_bytes}/{file_size}"
+
         response = web.StreamResponse(
             status=status,
-            headers={
-                "Content-Type": mime_type,
-                "Content-Length": str(req_length),
-                "Content-Disposition": disposition,
-                "Accept-Ranges": "bytes",
-                "Cache-Control": "no-store",
-                "Content-Range": (
-                    f"bytes {from_bytes}-{until_bytes}/{file_size}"
-                ),
-            },
+            headers=headers,
         )
 
         await response.prepare(request)

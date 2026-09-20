@@ -50,7 +50,18 @@ FSUB_CHANNEL = int(environ.get('FSUB_CHANNEL', '0')) #public channel id -2328598
 
 # MongoDB information
 DATABASE_URI = environ.get('DATABASE_URI', "")
-DATABASE_NAME = environ.get('DATABASE_NAME', "")
+DATABASE_NAME = environ.get('DATABASE_NAME', 'FileToLink') or 'FileToLink'
+
+# Admin check helper
+def is_admin(user_id: int, username: str = None) -> bool:
+    if user_id in ADMINS:
+        return True
+    if username:
+        clean = username.lstrip("@").lower()
+        for a in ADMINS:
+            if isinstance(a, str) and a.lstrip("@").lower() == clean:
+                return True
+    return False
 
 #FREE SHORTNER
 ISGD = environ.get('ISGD', 'False').strip().lower() in ('true', '1', 'yes')
@@ -59,3 +70,4 @@ ISGD = environ.get('ISGD', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK = environ.get('SHORTLINK', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK_URL = environ.get('SHORTLINK_URL', '')
 SHORTLINK_API = environ.get('SHORTLINK_API', '')
+

@@ -6,6 +6,8 @@ from info import *
 
 
 async def ping_server():
+    if not URL:
+        return
     sleep_time = PING_INTERVAL
     while True:
         await asyncio.sleep(sleep_time)

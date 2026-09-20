@@ -86,19 +86,13 @@ async def start():
     await initialize_clients()
 
     # Load Plugins
-    for name in files:
-        with open(name) as a:
-            patt = Path(a.name)
-            plugin_name = patt.stem.replace(".py", "")
-            plugins_dir = Path(f"plugins/{plugin_name}.py")
-            import_path = f"plugins.{plugin_name}"
-
-            spec = importlib.util.spec_from_file_location(import_path, plugins_dir)
-            load = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(load)
-            sys.modules[import_path] = load
-
-            print(f"File2Link Imported => {plugin_name}")
+    for name in sorted(files):
+        plugin_name = Path(name).stem
+        if plugin_name.startswith("__"):
+            continue
+        import_path = f"plugins.{plugin_name}"
+        importlib.import_module(import_path)
+        print(f"File2Link Imported => {plugin_name}")
 
     if ON_HEROKU:
         asyncio.create_task(ping_server())
