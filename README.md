@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg" width="100" height="100" style="border-radius:24px; box-shadow:0 8px 30px rgba(139,92,246,0.35);" alt="File 2 Link Logo">
+<img src="https://i.ibb.co/9Hx6npt1/file2link-bot-dp-1789895105505.jpg" width="100" height="100" style="border-radius:24px; box-shadow:0 8px 30px rgba(139,92,246,0.35);" alt="File 2 Link Logo">
 
 # ⚡ File 2 Link ™
 
