@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>File ² Link — Telegram Cloud Stream Engine &amp; Dashboard</title>
+
+  <!-- Open Graph Meta -->
+  <meta property="og:title" content="File ² Link — Cloud Stream &amp; Download Engine">
+  <meta property="og:description" content="High-performance Telegram MTProto chunked streaming, multi-client load balancing, and instant direct downloads.">
+  <meta property="og:type" content="website">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #07070b;
+      --bg-surface: #0e0e16;
+      --bg-elevated: #151522;
+      --bg-card: rgba(18, 18, 30, 0.76);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(139, 92, 246, 0.35);
+      
+      --accent-purple: #8b5cf6;
+      --accent-purple-glow: rgba(139, 92, 246, 0.4);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.4);
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.35);
+      --accent-rose: #f43f5e;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-full: 9999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.55;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient Lighting */
+    .ambient-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(150px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.16;
+    }
+    .glow-1 { top: -120px; left: -100px; background: var(--accent-purple); }
+    .glow-2 { top: 35%; right: -150px; background: var(--accent-cyan); }
+    .glow-3 { bottom: -120px; left: 30%; background: var(--accent-emerald); opacity: 0.12; }
+
+    /* Top Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 7, 11, 0.86);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 18px var(--accent-purple-glow);
+      font-size: 0.95rem;
+      color: #fff;
+    }
+    .brand span {
+      background: linear-gradient(90deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand b { color: var(--accent-cyan); -webkit-text-fill-color: var(--accent-cyan); }
+
+    .nav-actions { display: flex; align-items: center; gap: 12px; }
+
+    .live-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent-emerald);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .btn-pill {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 7px 16px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .btn-pill:hover {
+      color: #fff;
+      background: var(--border-subtle);
+      border-color: var(--accent-purple);
+      transform: translateY(-1px);
+    }
+    .btn-pill.primary {
+      background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 14px var(--accent-purple-glow);
+    }
+    .btn-pill.primary:hover {
+      box-shadow: 0 6px 22px rgba(139, 92, 246, 0.6);
+      transform: translateY(-2px);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 44px;
+      padding: 10px 0;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(139, 92, 246, 0.12);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.76rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-purple);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(0.96rem, 2vw, 1.15rem);
+      color: var(--text-muted);
+      max-width: 660px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+
+    /* Interactive Link Launcher / Quick Opener */
+    .launcher-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.8), 0 0 30px -10px var(--accent-purple-glow);
+      margin-bottom: 40px;
+      transition: border-color 0.3s ease;
+    }
+    .launcher-card:hover {
+      border-color: var(--border-glow);
+    }
+    .launcher-label {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .launcher-input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .launcher-input {
+      flex: 1;
+      min-width: 260px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .launcher-input:focus {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+    .launcher-btn {
+      padding: 14px 22px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      transition: all 0.22s ease;
+    }
+    .launcher-btn.play {
+      background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+      color: #fff;
+      box-shadow: 0 6px 18px var(--accent-purple-glow);
+    }
+    .launcher-btn.play:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(139, 92, 246, 0.5);
+    }
+    .launcher-btn.download {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .launcher-btn.download:hover {
+      color: #fff;
+      border-color: var(--accent-cyan);
+      transform: translateY(-2px);
+    }
+
+    /* Live Telemetry Grid */
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 34px;
+    }
+    .telemetry-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      transition: transform 0.22s ease, border-color 0.22s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .telemetry-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-purple);
+    }
+    .telemetry-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .telemetry-label {
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+    .telemetry-icon {
+      font-size: 1.1rem;
+      color: var(--accent-purple);
+    }
+    .telemetry-val {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .telemetry-sub {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Client Workload Nodes */
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+    .node-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      transition: all 0.2s ease;
+    }
+    .node-card:hover {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .node-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .node-name i { color: var(--accent-cyan); font-size: 0.85rem; }
+    .node-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+    .node-badge.active {
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--accent-cyan);
+      border-color: rgba(6, 182, 212, 0.35);
+    }
+    .node-meter {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+    .node-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+      border-radius: var(--radius-full);
+      transition: width 0.4s ease;
+    }
+
+    /* Capabilities & Features Carousel/Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      transition: all 0.22s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-glow);
+    }
+    .feature-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+    }
+    .feature-icon-box.purple { background: rgba(139, 92, 246, 0.14); color: var(--accent-purple); }
+    .feature-icon-box.cyan { background: rgba(6, 182, 212, 0.14); color: var(--accent-cyan); }
+    .feature-icon-box.emerald { background: rgba(16, 185, 129, 0.14); color: var(--accent-emerald); }
+
+    .feature-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 34px 28px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.84rem;
+      margin-top: auto;
+      background: var(--bg-surface);
+    }
+    .footer-brand { font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 12px;
+    }
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--accent-purple); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      background: var(--bg-elevated);
+      color: #fff;
+      border: 1px solid var(--accent-purple);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 16px var(--accent-purple-glow);
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      z-index: 1000;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      header { padding: 12px 16px; }
+      main { padding: 24px 14px 40px; }
+      .launcher-input-row { flex-direction: column; }
+      .launcher-btn { justify-content: center; width: 100%; }
+      .telemetry-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient glow lighting -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <a class="brand" href="/">
+      <div class="brand-icon"><i class="fa-solid fa-play"></i></div>
+      <span>FILE ² <b>LINK</b></span>
+    </a>
+    <div class="nav-actions">
+      <div class="live-status-pill">
+        <div class="pulse-dot"></div>
+        <span>OPERATIONAL</span>
+      </div>
+      <a href="https://t.me/wudixh15" target="_blank" class="btn-pill primary">
+        <i class="fa-brands fa-telegram"></i> Telegram Bot
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Dashboard -->
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-eyebrow">
+        <i class="fa-solid fa-bolt"></i> High-Speed MTProto Streaming Engine
+      </div>
+      <h1>Next-Gen Telegram Stream &amp; Cloud Hub</h1>
+      <p>
+        Stream any video or audio file directly in your browser with zero buffering, or download at full broadband speed via multi-client acceleration.
+      </p>
+
+      <!-- Interactive Stream Opener / Quick Player -->
+      <div class="launcher-card">
+        <div class="launcher-label">
+          <i class="fa-solid fa-magnifying-glass"></i> Instant Link Opener &amp; Stream Launcher:
+        </div>
+        <div class="launcher-input-row">
+          <input 
+            type="text" 
+            id="linkInput" 
+            class="launcher-input" 
+            placeholder="Paste /watch/123?hash=... or file URL here"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="launcher-btn play" onclick="launchViewer('watch')">
+            <i class="fa-solid fa-play"></i> Watch Stream
+          </button>
+          <button class="launcher-btn download" onclick="launchViewer('dl')">
+            <i class="fa-solid fa-download"></i> Download Page
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Real-Time Telemetry Metrics -->
+    <div class="section-title">
+      <i class="fa-solid fa-chart-line"></i> Live Cluster Telemetry
+    </div>
+
+    <div class="telemetry-grid">
+      <!-- Uptime Card -->
+      <div class="telemetry-card">
+        <div class="telemetry-top">
+          <span class="telemetry-label">Cluster Uptime</span>
+          <i class="fa-solid fa-clock-rotate-left telemetry-icon"></i>
+        </div>
+        <div class="telemetry-val" id="valUptime">{{uptime_str}}</div>
+        <div class="telemetry-sub">Continuous active service</div>
+      </div>
+
+      <!-- Active Streams Card -->
+      <div class="telemetry-card">
+        <div class="telemetry-top">
+          <span class="telemetry-label">Active Streams</span>
+          <i class="fa-solid fa-satellite-dish telemetry-icon" style="color:var(--accent-cyan);"></i>
+        </div>
+        <div class="telemetry-val" id="valStreams" style="color:var(--accent-cyan);">{{total_active_streams}}</div>
+        <div class="telemetry-sub">Live concurrent readers</div>
+      </div>
+
+      <!-- Total Clients Card -->
+      <div class="telemetry-card">
+        <div class="telemetry-top">
+          <span class="telemetry-label">MTProto Workers</span>
+          <i class="fa-solid fa-server telemetry-icon" style="color:var(--accent-emerald);"></i>
+        </div>
+        <div class="telemetry-val" id="valClients" style="color:var(--accent-emerald);">{{total_clients}} Nodes</div>
+        <div class="telemetry-sub">{% if is_multi_client %}Multi-Client Load Balancing ON{% else %}Standalone Client{% endif %}</div>
+      </div>
+
+      <!-- Engine Protocol Card -->
+      <div class="telemetry-card">
+        <div class="telemetry-top">
+          <span class="telemetry-label">Streaming Spec</span>
+          <i class="fa-solid fa-shield-halved telemetry-icon" style="color:var(--accent-rose);"></i>
+        </div>
+        <div class="telemetry-val" style="font-size:1.15rem; color:#fff;">RFC 7233 (206)</div>
+        <div class="telemetry-sub">1 MiB parallel chunk prefetch</div>
+      </div>
+    </div>
+
+    <!-- Active Client Workload Breakdown -->
+    <div class="section-title">
+      <i class="fa-solid fa-network-wired"></i> Worker Node Workloads
+    </div>
+
+    <div class="nodes-grid" id="nodesContainer">
+      {% for client in clients %}
+      {% set load = client.active_streams %}
+      {% set load_pct = [load * 25, 100]|min %}
+      <div class="node-card" id="node-{{client.client_id}}">
+        <div class="node-header">
+          <span class="node-name">
+            <i class="fa-solid fa-server"></i> Client #{{client.client_id}}
+          </span>
+          <span class="node-badge {% if load > 0 %}active{% endif %}">
+            {{load}} Active
+          </span>
+        </div>
+        <div class="node-meter">
+          <div class="node-meter-fill" style="width:{{ [load_pct, 6]|max }}%;"></div>
+        </div>
+      </div>
+      {% else %}
+      <div class="node-card" style="grid-column: 1/-1; text-align:center; color:var(--text-dim);">
+        No active worker nodes initialized.
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Engine Highlights & Features -->
+    <div class="section-title">
+      <i class="fa-solid fa-cubes"></i> Engine Capabilities
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon-box purple">
+          <i class="fa-solid fa-film"></i>
+        </div>
+        <h3 class="feature-title">Universal Format Player</h3>
+        <p class="feature-desc">
+          Streams MKV, MP4, WebM, AVI, TS, and MOV in-browser with seamless Plyr integration, subtitle tracks, and audio switching.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box cyan">
+          <i class="fa-solid fa-bolt-lightning"></i>
+        </div>
+        <h3 class="feature-title">Multi-Client Acceleration</h3>
+        <p class="feature-desc">
+          Atomic load balancing across multiple Telegram bot tokens distributes heavy viewer traffic without triggering Telegram FloodWaits.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon-box emerald">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </div>
+        <h3 class="feature-title">Resumable Byte-Ranges</h3>
+        <p class="feature-desc">
+          Full HTTP 206 Partial Content compliance allows IDM, 1DM, ADM, and download managers to open 16–32 parallel connections.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-brand">FILE ² LINK CLOUD STREAM SERVICE</div>
+    <p>© <span id="year"></span> File Stream Bot™. High-performance MTProto multi-client cloud streamer.</p>
+    <div class="footer-links">
+      <a href="https://t.me/wudixh15" target="_blank"><i class="fa-brands fa-telegram"></i> Telegram Updates</a>
+      <a href="/?json=true" target="_blank"><i class="fa-solid fa-code"></i> JSON Status API</a>
+      <a href="https://github.com/GouthamSER" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-circle-check" style="color:var(--accent-emerald);"></i>
+    <span id="toastMsg">Ready</span>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Link Opener Action
+    function launchViewer(targetMode) {
+      let val = document.getElementById('linkInput').value.trim();
+      if (!val) {
+        showToast('Please paste a link or file path', true);
+        document.getElementById('linkInput').focus();
+        return;
+      }
+
+      // If full URL was pasted, extract path
+      try {
+        if (val.includes('://')) {
+          const u = new URL(val);
+          val = u.pathname + u.search;
+        }
+      } catch (e) {}
+
+      // Normalize
+      val = val.replace(/^\/+/, ''); // strip leading slash
+
+      if (targetMode === 'watch') {
+        val = val.replace(/^(download|view|dl)\//, '');
+        if (!val.startsWith('watch/') && !val.startsWith('stream/')) {
+          val = 'watch/' + val;
+        }
+        window.location.href = '/' + val;
+      } else {
+        // download / dl page viewer
+        val = val.replace(/^(watch|stream|dl)\//, '');
+        if (!val.startsWith('download/') && !val.startsWith('view/')) {
+          val = 'download/' + val;
+        }
+        window.location.href = '/' + val;
+      }
+    }
+
+    // Toast Utility
+    let toastTimeout;
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.querySelector('i').className = isError 
+        ? 'fa-solid fa-circle-exclamation' 
+        : 'fa-solid fa-circle-check';
+      toast.querySelector('i').style.color = isError ? 'var(--accent-rose)' : 'var(--accent-emerald)';
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    // Live Telemetry Auto-Poll (Every 6s)
+    async function refreshTelemetry() {
+      try {
+        const res = await fetch('/?json=true');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.uptime) document.getElementById('valUptime').textContent = data.uptime;
+        if (data.active_streams !== undefined) document.getElementById('valStreams').textContent = data.active_streams;
+        if (data.total_clients !== undefined) document.getElementById('valClients').textContent = data.total_clients + ' Nodes';
+
+        // Update client nodes
+        if (data.clients && data.clients.length > 0) {
+          const container = document.getElementById('nodesContainer');
+          let html = '';
+          data.clients.forEach(c => {
+            const load = c.active_streams;
+            const pct = Math.max(Math.min(load * 25, 100), 6);
+            const activeClass = load > 0 ? 'active' : '';
+            html += `
+              <div class="node-card" id="node-${c.client_id}">
+                <div class="node-header">
+                  <span class="node-name">
+                    <i class="fa-solid fa-server"></i> Client #${c.client_id}
+                  </span>
+                  <span class="node-badge ${activeClass}">
+                    ${load} Active
+                  </span>
+                </div>
+                <div class="node-meter">
+                  <div class="node-meter-fill" style="width:${pct}%;"></div>
+                </div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        }
+      } catch (err) {
+        // silent background poll fail
+      }
+    }
+
+    setInterval(refreshTelemetry, 6000);
+  </script>
+</body>
+</html>

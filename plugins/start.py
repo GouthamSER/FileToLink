@@ -31,6 +31,8 @@ def styled_button(text, style=None, **kwargs):
 # ─────────────────────────────────────────────
 async def is_subscribed(client, user_id: int) -> bool:
     """Returns True if the user is a member of FSUB_CHANNEL, False otherwise."""
+    if not FSUB_CHANNEL:
+        return True
     try:
         member = await client.get_chat_member(FSUB_CHANNEL, user_id)
         return member.status not in (

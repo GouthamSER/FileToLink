@@ -12,10 +12,21 @@ import logging
 
 
 # Compile each template ONCE and cache it
-@functools.lru_cache(maxsize=4)
+@functools.lru_cache(maxsize=8)
 def _get_template(template_file: str) -> jinja2.Template:
     with open(template_file, "r", encoding="utf-8") as f:
         return jinja2.Template(f.read())
+
+
+async def render_home_page(uptime_str, total_clients, is_multi_client, total_active_streams, clients):
+    template = _get_template("lib/template/home.html")
+    return template.render(
+        uptime_str=uptime_str,
+        total_clients=total_clients,
+        is_multi_client=is_multi_client,
+        total_active_streams=total_active_streams,
+        clients=clients,
+    )
 
 
 async def render_page(id, secure_hash, page="watch"):

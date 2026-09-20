@@ -27,6 +27,7 @@ class FileToLink(Client):
             api_hash=API_HASH,
             bot_token=BOT_TOKEN,
             workers=24,
+            plugins=dict(root="plugins"),
             sleep_threshold=10,
         )
 

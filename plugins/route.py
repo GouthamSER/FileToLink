@@ -15,7 +15,7 @@ from lib.server.exceptions import FIleNotFound, InvalidHash
 from lib import StartTime, __version__
 from lib.util.custom_dl import ByteStreamer, CHUNK_SIZE
 from lib.util.time_format import get_readable_time
-from lib.util.render_template import render_page
+from lib.util.render_template import render_page, render_home_page
 from plugins.error_detection import detect_error
 
 
@@ -24,266 +24,47 @@ class_cache = {}
 
 
 @routes.get("/", allow_head=True)
-async def root_route_handler(request):
+async def root_route_handler(request: web.Request):
     uptime_str = get_readable_time(int(time.time() - StartTime))
     total_clients = len(multi_clients)
     is_multi_client = total_clients > 1
+    total_active_streams = sum(work_loads.values())
+
+    clients = [
+        {"client_id": cid, "active_streams": load}
+        for cid, load in sorted(work_loads.items())
+    ]
 
     if request.query.get("json") == "true":
-        clients = [
-            {"client_id": cid, "active_streams": load}
-            for cid, load in sorted(work_loads.items())
-        ]
         return web.json_response({
-            "status": "alive",
+            "status": "online",
             "uptime": uptime_str,
             "multi_client": is_multi_client,
             "total_clients": total_clients,
+            "active_streams": total_active_streams,
             "clients": clients,
         })
 
-    clients_html = ""
-    for cid, load in sorted(work_loads.items()):
-        clients_html += f"""
-        <div class="client-item">
-            <span>Client ID: <b>{cid}</b></span>
-            <span class="badge">{load} Active</span>
-        </div>
-        """
-
-    if not clients_html:
-        clients_html = (
-            '<div class="client-item" style="justify-content:center;'
-            'color:var(--text-muted);">No active clients found.</div>'
-        )
-
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File ² Link</title>
-    <style>
-        :root {{
-            --bg-main:#121212;
-            --bg-secondary:#1e1e1e;
-            --accent-purple:#9333ea;
-            --text-main:#fff;
-            --text-muted:#a3a3a3;
-            --success:#22c55e;
-            --error:#ef4444;
-        }}
-        html,body {{
-            margin:0;
-            padding:0;
-            font-family:system-ui,-apple-system,sans-serif;
-            background:var(--bg-main);
-            color:var(--text-main);
-            scroll-behavior:smooth;
-        }}
-        nav {{
-            padding:1.5rem 2rem;
-            display:flex;
-            align-items:center;
-            position:absolute;
-            top:0;
-            width:100%;
-            box-sizing:border-box;
-        }}
-        .logo {{
-            font-size:1.25rem;
-            font-weight:800;
-            letter-spacing:.05em;
-            text-transform:uppercase;
-        }}
-        .logo span {{ color:var(--accent-purple); }}
-        .hero {{
-            min-height:100vh;
-            display:flex;
-            flex-direction:column;
-            justify-content:center;
-            align-items:center;
-            text-align:center;
-            padding:2rem;
-            box-sizing:border-box;
-        }}
-        .hero h1 {{
-            font-size:clamp(2rem,5vw,3.5rem);
-            margin:0 0 1rem;
-            font-weight:800;
-            letter-spacing:-.02em;
-        }}
-        .hero p {{
-            font-size:clamp(1rem,2.5vw,1.25rem);
-            color:var(--text-muted);
-            margin:0;
-            max-width:600px;
-        }}
-        .scroll-prompt {{
-            margin-top:4rem;
-            color:var(--text-muted);
-            animation:bounce 2s infinite;
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-        }}
-        @keyframes bounce {{
-            0%,20%,50%,80%,100% {{ transform:translateY(0); }}
-            40% {{ transform:translateY(-10px); }}
-            60% {{ transform:translateY(-5px); }}
-        }}
-        .status-section {{
-            padding:4rem 2rem;
-            max-width:800px;
-            margin:0 auto;
-            min-height:80vh;
-        }}
-        .section-title {{
-            text-align:center;
-            font-size:1.8rem;
-            margin-bottom:3rem;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            gap:12px;
-        }}
-        .status-indicator {{
-            display:inline-block;
-            width:14px;
-            height:14px;
-            background:var(--success);
-            border-radius:50%;
-            box-shadow:0 0 10px var(--success);
-            animation:pulse 2s infinite;
-        }}
-        @keyframes pulse {{
-            0% {{ box-shadow:0 0 0 0 rgba(34,197,94,.7); }}
-            70% {{ box-shadow:0 0 0 10px rgba(34,197,94,0); }}
-            100% {{ box-shadow:0 0 0 0 rgba(34,197,94,0); }}
-        }}
-        .stat-grid {{
-            display:grid;
-            grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-            gap:1rem;
-            margin-bottom:3rem;
-        }}
-        .stat-card {{
-            background:var(--bg-secondary);
-            padding:1.5rem;
-            border-radius:1rem;
-            text-align:center;
-            border:1px solid #262626;
-        }}
-        .stat-value {{
-            font-size:1.5rem;
-            font-weight:bold;
-            margin:.5rem 0;
-            color:var(--success);
-        }}
-        .stat-label {{
-            font-size:.8rem;
-            color:var(--text-muted);
-            text-transform:uppercase;
-            letter-spacing:.1em;
-        }}
-        .client-list {{
-            background:var(--bg-secondary);
-            border-radius:1rem;
-            overflow:hidden;
-            border:1px solid #262626;
-        }}
-        .client-item {{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            padding:1.25rem 1.5rem;
-            border-bottom:1px solid #262626;
-        }}
-        .client-item:last-child {{ border-bottom:none; }}
-        .badge {{
-            background:var(--accent-purple);
-            color:#fff;
-            padding:.35rem .75rem;
-            border-radius:999px;
-            font-size:.8rem;
-            font-weight:bold;
-        }}
-        footer {{
-            text-align:center;
-            padding:2rem;
-            color:var(--text-muted);
-            font-size:.9rem;
-            border-top:1px solid #262626;
-            margin-top:2rem;
-        }}
-        footer a {{
-            color:var(--accent-purple);
-            text-decoration:none;
-        }}
-    </style>
-</head>
-<body>
-    <nav>
-        <div class="logo">FILE ² <span>LINK</span></div>
-    </nav>
-
-    <section class="hero">
-        <h1>Welcome to File ² Link</h1>
-        <p>Experience seamless streaming like never before.</p>
-
-        <div class="scroll-prompt">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round">
-                <path d="M12 5v14M19 12l-7 7-7-7"/>
-            </svg>
-            <div style="font-size:.75rem;margin-top:.75rem;text-transform:
-                 uppercase;letter-spacing:2px;">Scroll for Status</div>
-        </div>
-    </section>
-
-    <section class="status-section" id="status">
-        <h2 class="section-title">
-            <span class="status-indicator"></span> System Status
-        </h2>
-
-        <div class="stat-grid">
-            <div class="stat-card">
-                <div class="stat-label">Uptime</div>
-                <div class="stat-value">{uptime_str}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Clients</div>
-                <div class="stat-value">{total_clients}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Multi-Client</div>
-                <div class="stat-value"
-                     style="color:{'var(--success)' if is_multi_client else 'var(--error)'}">
-                    {is_multi_client}
-                </div>
-            </div>
-        </div>
-
-        <h3 style="font-size:1rem;margin-bottom:1rem;color:var(--text-muted);
-                   letter-spacing:.05em;text-transform:uppercase;">
-            Active Workloads
-        </h3>
-        <div class="client-list">{clients_html}</div>
-    </section>
-
-    <footer>
-        Copyright &copy; 2026 <a href="#">File ² Link</a>. All Rights Reserved.
-    </footer>
-</body>
-</html>
-"""
-    return web.Response(text=html_content, content_type="text/html")
+    html = await render_home_page(
+        uptime_str=uptime_str,
+        total_clients=total_clients,
+        is_multi_client=is_multi_client,
+        total_active_streams=total_active_streams,
+        clients=clients,
+    )
+    return web.Response(text=html, content_type="text/html")
 
 
 @routes.get(r"/watch/{path:.+}", allow_head=True)
+@routes.get(r"/stream/{path:.+}", allow_head=True)
 async def stream_handler(request: web.Request):
     return await _render_page_route(request, page="watch")
+
+
+@routes.get(r"/download/{path:.+}", allow_head=True)
+@routes.get(r"/view/{path:.+}", allow_head=True)
+async def download_page_handler(request: web.Request):
+    return await _render_page_route(request, page="dl")
 
 
 @routes.get(r"/dl/{path:.+}", allow_head=True)

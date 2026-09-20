@@ -94,6 +94,9 @@ async def start():
         importlib.import_module(import_path)
         print(f"File2Link Imported => {plugin_name}")
 
+    total_handlers = sum(len(h) for h in File2Link.dispatcher.groups.values())
+    logging.info(f"Loaded {total_handlers} handler(s) across {len(File2Link.dispatcher.groups)} group(s)")
+
     if ON_HEROKU:
         asyncio.create_task(ping_server())
 
