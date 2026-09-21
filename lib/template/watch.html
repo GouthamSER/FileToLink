@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{{file_name}} — File ² Link Player</title>
+
+  <!-- Open Graph Meta -->
+  <meta name="author" content="Goutham Josh (@GouthamSER)">
+  <meta property="og:title" content="{{file_name}}">
+  <meta property="og:description"
+    content="Stream and download {{file_name}} ({{file_size}}) with high-speed MTProto streaming.">
+  <meta property="og:type" content="video.other">
+  <meta property="og:url" content="{{watch_url}}">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Plyr Video Player CSS -->
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+
+  <style>
+    :root {
+      --bg: #07070b;
+      --bg-surface: #0e0e16;
+      --bg-elevated: #151522;
+      --bg-card: rgba(21, 21, 34, 0.72);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(139, 92, 246, 0.35);
+
+      --accent-purple: #8b5cf6;
+      --accent-purple-glow: rgba(139, 92, 246, 0.4);
+      --accent-cyan: #06b6d4;
+      --accent-cyan-glow: rgba(6, 182, 212, 0.4);
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+
+      --plyr-color-main: #8b5cf6;
+      --plyr-video-background: #000000;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Glows */
+    .ambient-glow {
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      filter: blur(140px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+    }
+
+    .glow-1 {
+      top: -100px;
+      left: -100px;
+      background: var(--accent-purple);
+    }
+
+    .glow-2 {
+      top: 30%;
+      right: -150px;
+      background: var(--accent-cyan);
+    }
+
+    .glow-3 {
+      bottom: -100px;
+      left: 20%;
+      background: var(--accent-rose);
+      opacity: 0.12;
+    }
+
+    /* Top Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 7, 11, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 1.12rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-purple-glow);
+      font-size: 0.85rem;
+      color: #fff;
+    }
+
+    .brand span {
+      background: linear-gradient(90deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand b {
+      color: var(--accent-cyan);
+      -webkit-text-fill-color: var(--accent-cyan);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-pill {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full);
+      padding: 7px 16px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .btn-pill:hover {
+      color: #fff;
+      background: var(--border-subtle);
+      border-color: var(--accent-purple);
+      transform: translateY(-1px);
+    }
+
+    .btn-pill.primary {
+      background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 14px var(--accent-purple-glow);
+    }
+
+    .btn-pill.primary:hover {
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+      transform: translateY(-2px);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Player Container */
+    .player-card {
+      background: #000;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px -10px var(--accent-purple-glow);
+      margin-bottom: 24px;
+      position: relative;
+      transition: border-color 0.3s ease;
+    }
+
+    .player-card:hover {
+      border-color: var(--border-glow);
+    }
+
+    .video-holder {
+      width: 100%;
+      background: #000;
+      position: relative;
+      min-height: 240px;
+    }
+
+    /* Audio Player Mode */
+    .audio-card {
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      margin-bottom: 24px;
+    }
+
+    .disc-holder {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #222 20%, #111 60%, #333 100%);
+      border: 4px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px var(--accent-purple-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      animation: spin 16s linear infinite;
+    }
+
+    .disc-center {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent-purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2rem;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Codec Notice Banner */
+    .codec-notice {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      font-size: 0.86rem;
+      color: #fecdd3;
+      backdrop-filter: blur(10px);
+    }
+
+    .codec-notice.show {
+      display: flex;
+    }
+
+    .codec-btn {
+      background: var(--accent-rose);
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform 0.2s;
+    }
+
+    .codec-btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* File Metadata & Title */
+    .meta-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .file-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .file-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      line-height: 1.4;
+      word-break: break-word;
+      color: #fff;
+    }
+
+    .format-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    /* Badges list */
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge i {
+      font-size: 0.72rem;
+    }
+
+    .badge.accent {
+      color: var(--accent-cyan);
+      border-color: rgba(6, 182, 212, 0.3);
+      background: rgba(6, 182, 212, 0.08);
+    }
+
+    .badge.success {
+      color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    /* Primary Action Hub */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .action-btn {
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 0.94rem;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+    }
+
+    .action-btn.download {
+      background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+      color: #fff;
+      box-shadow: 0 8px 24px var(--accent-cyan-glow);
+    }
+
+    .action-btn.download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(6, 182, 212, 0.5);
+    }
+
+    .action-btn.copy {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+    }
+
+    .action-btn.copy:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--accent-purple);
+      transform: translateY(-2px);
+    }
+
+    .action-btn.download-page {
+      background: rgba(139, 92, 246, 0.12);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: var(--accent-purple);
+    }
+
+    .action-btn.download-page:hover {
+      background: rgba(139, 92, 246, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* External Players Grid */
+    .section-header {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    .player-apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .app-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      text-align: center;
+    }
+
+    .app-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-purple);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .app-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 2px;
+    }
+
+    .app-icon.vlc {
+      background: #ff7800;
+      color: #fff;
+    }
+
+    .app-icon.mx {
+      background: #1976d2;
+      color: #fff;
+    }
+
+    .app-icon.nplayer {
+      background: #222;
+      color: #ff3366;
+    }
+
+    .app-icon.kmp {
+      background: #6a1b9a;
+      color: #fff;
+    }
+
+    .app-icon.pot {
+      background: #ffd600;
+      color: #000;
+    }
+
+    .app-icon.copy-stream {
+      background: var(--bg-elevated);
+      color: var(--accent-cyan);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .app-name {
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .app-sub {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+
+    /* Technical Details Accordion / Specs */
+    .specs-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .spec-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.85rem;
+    }
+
+    .spec-item:last-child {
+      border-bottom: none;
+    }
+
+    .spec-label {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .spec-val {
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      word-break: break-all;
+    }
+
+    /* Shortcuts Banner */
+    .shortcuts-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      font-size: 0.76rem;
+      color: var(--text-dim);
+    }
+
+    .kbd {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 2px 6px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 30px 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      margin-top: auto;
+      background: var(--bg-surface);
+    }
+
+    .footer-brand {
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .footer-credit {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+
+    .footer-credit .dev-link {
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-credit .dev-link:hover {
+      color: var(--accent-purple);
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-purple);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      background: var(--bg-elevated);
+      color: #fff;
+      border: 1px solid var(--accent-purple);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 16px var(--accent-purple-glow);
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      z-index: 1000;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 12px 16px;
+      }
+
+      main {
+        padding: 16px 12px 40px;
+      }
+
+      .file-title {
+        font-size: 1.1rem;
+      }
+
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .player-apps-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .shortcuts-bar {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Ambient background lighting -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Header -->
+  <header>
+    <a class="brand" href="https://t.me/wudixh12" target="_blank">
+      <div class="brand-icon"><i class="fa-solid fa-play"></i></div>
+      <span>FILE ² <b>LINK</b></span>
+    </a>
+    <div class="nav-actions">
+      <a href="{{dl_url}}" class="btn-pill" title="Switch to Download page">
+        <i class="fa-solid fa-download"></i> Download
+      </a>
+      <a href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer" class="btn-pill" title="Developer GitHub Repository">
+        <i class="fa-brands fa-github"></i> GitHub
+      </a>
+      <a href="https://t.me/wudixh12" target="_blank" class="btn-pill primary">
+        <i class="fa-brands fa-telegram"></i> Channel
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main>
+    <!-- Codec Warning Notice (auto-triggers if browser cannot decode video) -->
+    <div class="codec-notice" id="codecNotice">
+      <div>
+        <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-rose); margin-right:6px;"></i>
+        <b>Playback issue?</b> Some browsers cannot decode <code>{{file_ext}}</code> / AC3 audio natively.
+      </div>
+      <button class="codec-btn" onclick="openVLC()">Open in VLC <i
+          class="fa-solid fa-arrow-up-right-from-square"></i></button>
+    </div>
+
+    <!-- Media Player -->
+    {% if is_audio %}
+    <!-- Dedicated Audio Mode -->
+    <div class="audio-card">
+      <div class="disc-holder" id="discHolder">
+        <div class="disc-center"><i class="fa-solid fa-music"></i></div>
+      </div>
+      <h2 class="file-title" style="margin-bottom:18px;">{{file_name}}</h2>
+      <div style="width:100%; max-width:540px;">
+        <audio id="player" controls crossorigin playsinline style="width:100%;">
+          <source src="{{file_url}}" type="{{mime_type}}">
+          <source src="{{file_url}}" type="audio/mpeg">
+          <source src="{{file_url}}" type="audio/ogg">
+        </audio>
+      </div>
+    </div>
+    {% else %}
+    <!-- Universal Video Player (Plyr handles MP4, MKV, WebM, etc.) -->
+    <div class="player-card">
+      <div class="video-holder">
+        <video id="player" playsinline controls crossorigin preload="metadata">
+          <source src="{{file_url}}" type="{{mime_type}}">
+          <source src="{{file_url}}" type="video/mp4">
+          <source src="{{file_url}}" type="video/webm">
+          Your browser does not support HTML5 video streaming. Please use the external players below.
+        </video>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- File Information Panel -->
+    <div class="meta-panel">
+      <div class="file-header">
+        <h1 class="file-title">{{file_name}}</h1>
+        <div class="format-badge">{{file_ext}}</div>
+      </div>
+
+      <div class="badge-row">
+        <div class="badge accent"><i class="fa-solid fa-database"></i> {{file_size}}</div>
+        <div class="badge success"><i class="fa-solid fa-bolt"></i> High Speed Stream</div>
+        <div class="badge"><i class="fa-solid fa-cube"></i> {{mime_type}}</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-grid">
+        <a href="{{file_url}}" class="action-btn download" download="{{file_name_raw}}" id="downloadBtn">
+          <i class="fa-solid fa-cloud-arrow-down"></i> Direct Download
+        </a>
+        <button class="action-btn copy" onclick="copyStreamUrl()">
+          <i class="fa-solid fa-link"></i> Copy Stream Link
+        </button>
+        <a href="{{dl_url}}" class="action-btn download-page">
+          <i class="fa-solid fa-file-arrow-down"></i> Download Page
+        </a>
+      </div>
+
+      <!-- External Apps Launch Grid -->
+      <div class="section-header">
+        <i class="fa-solid fa-play"></i> Open In External Player (Recommended for MKV & 4K)
+      </div>
+
+      <div class="player-apps-grid">
+        <!-- VLC -->
+        <a class="app-card" onclick="openVLC()" title="Open in VLC Media Player">
+          <div class="app-icon vlc"><i class="fa-solid fa-traffic-cone"></i></div>
+          <span class="app-name">VLC</span>
+          <span class="app-sub">All Devices</span>
+        </a>
+
+        <!-- MX Player -->
+        <a class="app-card" onclick="openMX()" title="Open in MX Player">
+          <div class="app-icon mx"><i class="fa-solid fa-play"></i></div>
+          <span class="app-name">MX Player</span>
+          <span class="app-sub">Android</span>
+        </a>
+
+        <!-- nPlayer -->
+        <a class="app-card" onclick="openNPlayer()" title="Open in nPlayer">
+          <div class="app-icon nplayer"><i class="fa-solid fa-circle-play"></i></div>
+          <span class="app-name">nPlayer</span>
+          <span class="app-sub">iOS &amp; Mac</span>
+        </a>
+
+        <!-- KMPlayer -->
+        <a class="app-card" onclick="openKMPlayer()" title="Open in KMPlayer">
+          <div class="app-icon kmp"><i class="fa-solid fa-film"></i></div>
+          <span class="app-name">KMPlayer</span>
+          <span class="app-sub">Mobile</span>
+        </a>
+
+        <!-- PotPlayer -->
+        <a class="app-card" onclick="openPotPlayer()" title="Open in PotPlayer (Windows)">
+          <div class="app-icon pot"><i class="fa-solid fa-tv"></i></div>
+          <span class="app-name">PotPlayer</span>
+          <span class="app-sub">Windows PC</span>
+        </a>
+
+        <!-- Copy for Network Stream -->
+        <a class="app-card" onclick="copyStreamUrl()" title="Copy raw URL for Kodi / Infuse / IINA">
+          <div class="app-icon copy-stream"><i class="fa-solid fa-network-wired"></i></div>
+          <span class="app-name">Stream URL</span>
+          <span class="app-sub">Kodi / Infuse</span>
+        </a>
+      </div>
+
+      <!-- Technical Stream Specs -->
+      <div class="section-header">
+        <i class="fa-solid fa-circle-info"></i> Stream Technical Specs
+      </div>
+      <div class="specs-card">
+        <div class="spec-item">
+          <span class="spec-label">File Name</span>
+          <span class="spec-val">{{file_name_raw}}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">File Size</span>
+          <span class="spec-val">{{file_size}}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">MIME Type</span>
+          <span class="spec-val">{{mime_type}}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Format Container</span>
+          <span class="spec-val">{{file_ext}}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Stream Protocol</span>
+          <span class="spec-val">HTTP/1.1 Chunked Byte-Range (206)</span>
+        </div>
+      </div>
+
+      <!-- Keyboard Shortcuts -->
+      <div class="shortcuts-bar">
+        <span><span class="kbd">Space</span> Play/Pause</span>
+        <span><span class="kbd">←</span> <span class="kbd">→</span> ±10s</span>
+        <span><span class="kbd">↑</span> <span class="kbd">↓</span> Volume</span>
+        <span><span class="kbd">F</span> Fullscreen</span>
+        <span><span class="kbd">M</span> Mute</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-brand">FILE ² LINK STREAM SERVICE</div>
+    <p>© <span id="year"></span> File Stream Bot™. High-performance MTProto multi-client cloud streamer.</p>
+    <div class="footer-credit">
+      <span>Developer: <a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer" class="dev-link"><i class="fa-solid fa-code"></i> Goutham Josh</a> (<a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer" class="dev-link">@GouthamSER</a>)</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://t.me/wudixh15" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Updates</a>
+      <a href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> GitHub Repo</a>
+      <a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github-alt"></i> @GouthamSER</a>
+    </div>
+  </footer>
+
+  <!-- Toast Element -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-check-circle" style="color:var(--accent-emerald);"></i>
+    <span id="toastMsg">Copied to clipboard!</span>
+  </div>
+
+  <!-- Plyr Video Player JS -->
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const fileUrl = {{ file_url | tojson }};
+    const fileName = {{ file_name | tojson }};
+    const isAudio = {{ is_audio | tojson }};
+
+    // Initialize Plyr
+    const playerEl = document.getElementById('player');
+    let player;
+    if (playerEl) {
+      player = new Plyr('#player', {
+        controls: [
+          'play-large',
+          'play',
+          'progress',
+          'current-time',
+          'duration',
+          'mute',
+          'volume',
+          'captions',
+          'settings',
+          'pip',
+          'airplay',
+          'fullscreen'
+        ],
+        settings: ['quality', 'speed', 'loop'],
+        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+        keyboard: { focused: true, global: true },
+        tooltips: { controls: true, seek: true }
+      });
+
+      // Show codec warning on decode error
+      playerEl.addEventListener('error', function (e) {
+        console.warn('HTML5 Video decode error or unsupported container:', e);
+        document.getElementById('codecNotice').classList.add('show');
+      });
+
+      // Disc spin animation control for audio
+      const disc = document.getElementById('discHolder');
+      if (disc) {
+        player.on('play', () => disc.style.animationPlayState = 'running');
+        player.on('pause', () => disc.style.animationPlayState = 'paused');
+        disc.style.animationPlayState = 'paused';
+      }
+    }
+
+    // Toast Utility
+    let toastTimeout;
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.querySelector('i').className = isError
+        ? 'fa-solid fa-circle-exclamation'
+        : 'fa-solid fa-circle-check';
+      toast.querySelector('i').style.color = isError ? 'var(--accent-rose)' : 'var(--accent-emerald)';
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    // Copy stream URL
+    function copyStreamUrl() {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(fileUrl).then(() => {
+          showToast('Stream link copied to clipboard!');
+        }).catch(() => {
+          fallbackCopy(fileUrl);
+        });
+      } else {
+        fallbackCopy(fileUrl);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Stream link copied to clipboard!');
+      } catch (err) {
+        showToast('Failed to copy', true);
+      }
+      ta.remove();
+    }
+
+    // External App Intent Launchers
+    function openVLC() {
+      // Android Intent scheme with universal fallback
+      const androidIntent = `intent:${fileUrl}#Intent;package=org.videolan.vlc;type=video/*;scheme=https;end;`;
+      // iOS / Desktop scheme
+      const vlcScheme = `vlc://${fileUrl}`;
+
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        window.location.href = androidIntent;
+      } else {
+        window.location.href = vlcScheme;
+      }
+      setTimeout(() => showToast('Opening VLC Media Player...'), 300);
+    }
+
+    function openMX() {
+      const mxIntent = `intent:${fileUrl}#Intent;package=com.mxtech.videoplayer.ad;type=video/*;scheme=https;end;`;
+      window.location.href = mxIntent;
+      setTimeout(() => showToast('Opening MX Player...'), 300);
+    }
+
+    function openNPlayer() {
+      window.location.href = `nplayer-${fileUrl}`;
+      setTimeout(() => showToast('Opening nPlayer...'), 300);
+    }
+
+    function openKMPlayer() {
+      const kmIntent = `intent:${fileUrl}#Intent;package=com.kmplayer;type=video/*;scheme=https;end;`;
+      window.location.href = kmIntent;
+      setTimeout(() => showToast('Opening KMPlayer...'), 300);
+    }
+
+    function openPotPlayer() {
+      window.location.href = `potplayer://${fileUrl}`;
+      setTimeout(() => showToast('Opening PotPlayer...'), 300);
+    }
+  </script>
+</body>
+
+</html>

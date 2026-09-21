@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://i.ibb.co/9Hx6npt1/file2link-bot-dp-1789895105505.jpg" width="100" height="100" style="border-radius:24px; box-shadow:0 8px 30px rgba(139,92,246,0.35);" alt="File 2 Link Logo">
+<img src="https://i.ibb.co/KzqHfL05/photo-2026-02-07-13-38-13.jpg" width="100" height="100" style="border-radius:24px; box-shadow:0 8px 30px rgba(139,92,246,0.35);" alt="File 2 Link Logo">
 
 # ⚡ File 2 Link ™
 
@@ -180,8 +180,9 @@ FileToLink/
 │   ├── server/
 │   │   └── exceptions.py      # Custom exceptions (InvalidHash, FIleNotFound)
 │   ├── template/
-│   │   ├── req.html           # Reimagined Cyberpunk Glassmorphic Video/Audio Player
-│   │   └── dl.html            # High-Speed Download Portal & acceleration guide
+│   │   ├── watch.html         # Reimagined Cyberpunk Glassmorphic Video/Audio Player
+│   │   ├── dl.html            # High-Speed Download Portal & acceleration guide
+│   │   └── home.html          # Next-Gen Telegram Stream & Cloud Hub Dashboard
 │   └── util/
 │       ├── custom_dl.py       # Custom ByteStreamer for Telegram chunked byte-range fetches
 │       ├── file_properties.py # Media type detector & universal filename synthesizer

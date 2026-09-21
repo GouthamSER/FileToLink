@@ -6,6 +6,7 @@
   <title>Download {{file_name}} — File ² Link</title>
 
   <!-- Open Graph Meta -->
+  <meta name="author" content="Goutham Josh (@GouthamSER)">
   <meta property="og:title" content="{{file_name}} ({{file_size}})">
   <meta property="og:description" content="Instant high-speed download powered by File ² Link Telegram MTProto streaming engine.">
   <meta property="og:type" content="website">
@@ -503,11 +504,26 @@
       background: var(--bg-surface);
     }
     .footer-brand { font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .footer-credit {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+    .footer-credit .dev-link {
+      color: #fff;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-credit .dev-link:hover {
+      color: var(--accent-emerald);
+    }
     .footer-links {
       display: flex;
       justify-content: center;
+      flex-wrap: wrap;
       gap: 18px;
-      margin-top: 10px;
+      margin-top: 12px;
     }
     .footer-links a {
       color: var(--text-muted);
@@ -571,6 +587,9 @@
         <i class="fa-solid fa-play"></i> Player
       </a>
       {% endif %}
+      <a href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer" class="btn-pill" title="Developer GitHub Repository">
+        <i class="fa-brands fa-github"></i> GitHub
+      </a>
       <a href="https://t.me/wudixh12" target="_blank" class="btn-pill primary">
         <i class="fa-brands fa-telegram"></i> Channel
       </a>
@@ -687,9 +706,13 @@
   <footer>
     <div class="footer-brand">FILE ² LINK CLOUD SERVICE</div>
     <p>© <span id="year"></span> File Stream Bot™. High-performance MTProto multi-client cloud streamer.</p>
+    <div class="footer-credit">
+      <span>Developer: <a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer" class="dev-link"><i class="fa-solid fa-code"></i> Goutham Josh</a> (<a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer" class="dev-link">@GouthamSER</a>)</span>
+    </div>
     <div class="footer-links">
-      <a href="https://t.me/wudixh12" target="_blank"><i class="fa-brands fa-telegram"></i> Telegram Updates</a>
-      <a href="https://github.com/GouthamSER" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
+      <a href="https://t.me/wudixh12" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Telegram Updates</a>
+      <a href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> GitHub Repo</a>
+      <a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github-alt"></i> @GouthamSER</a>
     </div>
   </footer>
 

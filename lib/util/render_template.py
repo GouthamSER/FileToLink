@@ -63,9 +63,9 @@ async def render_page(id, secure_hash, page="watch"):
     if page == "dl":
         template_file = "lib/template/dl.html"
     elif page == "watch":
-        template_file = "lib/template/req.html" if (is_video or is_audio) else "lib/template/dl.html"
+        template_file = "lib/template/watch.html" if (is_video or is_audio) else "lib/template/dl.html"
     else:
-        template_file = "lib/template/req.html" if (is_video or is_audio) else "lib/template/dl.html"
+        template_file = "lib/template/watch.html" if (is_video or is_audio) else "lib/template/dl.html"
 
     file_size = humanbytes(file_data.file_size)
     template = _get_template(template_file)
