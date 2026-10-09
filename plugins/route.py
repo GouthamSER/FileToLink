@@ -296,6 +296,11 @@ async def media_streamer(
 
         await response.prepare(request)
 
+        # HEAD (VLC/players probe with it): headers only. Previously the
+        # whole range was pulled from Telegram and thrown away.
+        if request.method == "HEAD":
+            return response
+
         body = tg_connect.yield_file(
             file_id=file_id,
             index=index,
@@ -304,6 +309,7 @@ async def media_streamer(
             last_part_cut=last_part_cut,
             part_count=part_count,
             chunk_size=CHUNK_SIZE,
+            message_id=message_id,
         )
 
         # The generator now owns the reservation and will release it in
@@ -318,6 +324,15 @@ async def media_streamer(
                 "HTTP client disconnected from client %s",
                 index,
             )
+        except Exception as exc:
+            # Headers already sent: can't change status. Log, drop the
+            # socket so the player sees a short body and re-requests.
+            # Must NOT bubble to detect_error() -> that restarted the whole
+            # bot (killing every other stream) on a single bad chunk.
+            logging.warning("Stream aborted mid-way: %s", exc)
+            if request.transport:
+                request.transport.close()
+            return response
         finally:
             await body.aclose()
 
