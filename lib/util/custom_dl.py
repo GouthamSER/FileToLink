@@ -1,6 +1,7 @@
 import math
 import asyncio
 import logging
+from collections import deque
 from typing import Dict, Union
 
 from info import *
@@ -8,7 +9,7 @@ from lib.bot import work_loads, multi_clients
 from pyrogram import Client, utils, raw
 from lib.util.file_properties import get_file_ids
 from pyrogram.session import Session, Auth
-from pyrogram.errors import AuthBytesInvalid, FloodWait, RPCError
+from pyrogram.errors import AuthBytesInvalid, FloodWait, RPCError, BadRequest
 from lib.server.exceptions import FIleNotFound
 from pyrogram.file_id import FileId, FileType, ThumbnailSource
 
@@ -19,14 +20,14 @@ CHUNK_SIZE = 1024 * 1024
 
 # Number of chunks fetched in parallel by ONE HTTP stream.
 # Keep this moderate to reduce FloodWait risk.
-CONCURRENT_FETCHES = 2
+CONCURRENT_FETCHES = 3
 
 # Number of chunks kept ready in the HTTP pipeline.
-PREFETCH_SIZE = 3
+PREFETCH_SIZE = 6
 
 # Maximum simultaneous Telegram GetFile requests handled by ONE
 # Telegram client across ALL users/streams using that client.
-MAX_CLIENT_FETCHES = 2
+MAX_CLIENT_FETCHES = 4
 
 # How long file properties remain cached.
 CACHE_CLEAN_INTERVAL = 30 * 60
@@ -86,7 +87,10 @@ class ByteStreamer:
             file_id = self.cached_file_ids.get(id)
             if file_id is not None:
                 return file_id
-            return await self.generate_file_properties(id)
+            try:
+                return await self.generate_file_properties(id)
+            finally:
+                _FILE_LOCKS.pop((self.client, id), None)
 
     async def generate_file_properties(self, id: int) -> FileId:
         file_id = await get_file_ids(self.client, LOG_CHANNEL, id)
@@ -284,6 +288,12 @@ class ByteStreamer:
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 10)
 
+            except BadRequest:
+                # FILE_REFERENCE_EXPIRED, LOCATION_INVALID, OFFSET_INVALID...
+                # Retrying the same request can never succeed; fail fast
+                # instead of stalling the player ~35s.
+                raise
+
             except RPCError as exc:
                 last_exc = exc
                 logging.warning(
@@ -309,6 +319,7 @@ class ByteStreamer:
         last_part_cut: int,
         part_count: int,
         chunk_size: int,
+        message_id: int = None,
     ):
         """
         Ordered async generator for Telegram -> HTTP streaming.
@@ -333,42 +344,61 @@ class ByteStreamer:
             sentinel = object()
 
             async def producer():
-                try:
-                    for pos in range(0, len(offsets), CONCURRENT_FETCHES):
-                        if stop_event.is_set():
-                            break
+                # Sliding window: always keep CONCURRENT_FETCHES requests in
+                # flight, deliver strictly in order.
+                pending = deque()
+                offs = iter(offsets)
 
-                        batch = offsets[pos:pos + CONCURRENT_FETCHES]
-
-                        results = await asyncio.gather(
-                            *(
-                                self._fetch_chunk(
-                                    media_session,
-                                    location,
-                                    chunk_offset,
-                                    chunk_size,
-                                    index,
-                                )
-                                for chunk_offset in batch
+                def launch():
+                    off = next(offs, None)
+                    if off is None:
+                        return
+                    pending.append(
+                        asyncio.ensure_future(
+                            self._fetch_chunk(
+                                media_session, location, off, chunk_size, index
                             )
                         )
+                    )
 
-                        for chunk in results:
-                            if stop_event.is_set():
-                                break
-                            await queue.put(chunk)
+                try:
+                    for _ in range(CONCURRENT_FETCHES):
+                        launch()
+
+                    while pending and not stop_event.is_set():
+                        chunk = await pending.popleft()
+                        launch()
+                        await queue.put(chunk)
 
                 except asyncio.CancelledError:
+                    stop_event.set()
                     raise
                 except Exception as exc:
+                    if isinstance(exc, BadRequest) and message_id is not None:
+                        # stale file_reference -> force fresh metadata next req
+                        self.cached_file_ids.pop(message_id, None)
                     logging.error(
                         "Prefetch producer error on client %s: %s",
                         index,
                         exc,
                     )
-                    await queue.put(exc)
+                    if not stop_event.is_set():
+                        await queue.put(exc)
                 finally:
-                    await queue.put(sentinel)
+                    for t in pending:
+                        t.cancel()
+                    if pending:
+                        await asyncio.gather(*pending, return_exceptions=True)
+                    # Consumer alive -> must deliver sentinel (await, queue
+                    # may be full). Cancelled/stopped -> NEVER await put():
+                    # blocked forever on full queue, stale streams piled up.
+                    if stop_event.is_set():
+                        try:
+                            queue.put_nowait(sentinel)
+                        except asyncio.QueueFull:
+                            pass
+                    else:
+                        await queue.put(sentinel)
 
             producer_task = asyncio.create_task(producer())
             _BG_PRODUCER_TASKS.add(producer_task)
@@ -405,18 +435,17 @@ class ByteStreamer:
         finally:
             stop_event.set()
 
+            # Release the HTTP/client load reservation exactly once, FIRST,
+            # so a slow producer teardown can't leak the counter.
+            if index in work_loads and work_loads[index] > 0:
+                work_loads[index] -= 1
+
             if producer_task is not None and not producer_task.done():
                 producer_task.cancel()
                 try:
-                    await producer_task
-                except asyncio.CancelledError:
+                    await asyncio.wait_for(asyncio.shield(producer_task), timeout=5)
+                except BaseException:
                     pass
-                except Exception:
-                    pass
-
-            # Release the HTTP/client load reservation exactly once.
-            if index in work_loads and work_loads[index] > 0:
-                work_loads[index] -= 1
 
     async def clean_cache(self) -> None:
         while True:
@@ -436,4 +465,4 @@ async def cancel_all_producers() -> None:
         logging.info(
             "Cancelled %s active stream producer task(s)",
             len(tasks),
-                )
+        )
