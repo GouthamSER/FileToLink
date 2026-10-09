@@ -30,7 +30,6 @@ async def render_home_page(uptime_str, total_clients, is_multi_client, total_act
 
 
 async def render_page(id, secure_hash, page="watch"):
-    file = await File2Link.get_messages(int(LOG_CHANNEL), int(id))
     file_data = await get_file_ids(File2Link, int(LOG_CHANNEL), int(id))
     if file_data.unique_id[:6] != secure_hash:
         logging.debug(f"link hash: {secure_hash} - {file_data.unique_id[:6]}")
