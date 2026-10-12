@@ -6,6 +6,7 @@
 
 **High-Performance Telegram Cloud Streamer & Instant Direct Download Engine**
 
+[![Version](https://img.shields.io/badge/Version-v1.2.0-8B5CF6?style=for-the-badge&logo=git&logoColor=white)](#-changelog)
 [![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![Telegram Engine](https://img.shields.io/badge/Telegram-MTProto%20v2-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/wudixh15)
 [![Async Server](https://img.shields.io/badge/Server-aiohttp%20Speedups-FF6B6B?style=for-the-badge&logo=aiohttp&logoColor=white)](https://aiohttp.readthedocs.io)
@@ -46,10 +47,12 @@
 ### 🛡️ Core Reliability & Bot Architecture
 - **Multi-Client Load Balancing**: Round-robin and active-workload client balancing across multiple bot tokens (`MULTI_TOKEN1..N`) for virtually unlimited concurrent throughput.
 - **Atomic Reservation Lock**: Zero-gap client selection prevents race conditions when download accelerators open 16–32 connections in parallel.
-- **Parallel Chunk Prefetching**: Per-stream concurrent chunk fetching (`CONCURRENT_FETCHES`) minimizes video buffering delays.
+- **Sliding-Window Chunk Prefetching**: Each stream keeps `CONCURRENT_FETCHES` Telegram requests always in flight, delivered strictly in order, so VLC/MX seeks and buffering stay smooth.
+- **Seek-Safe Streams**: Abandoned seeks are torn down instantly (no leaked load counters), `HEAD` probes cost zero Telegram traffic, and a stale file reference fails fast and self-heals.
 - **Resilient Retry Mechanism**: Automatic backoff retries for transient Telegram RPC errors (`-503 Timeout`, `FloodWait`, socket drops).
 - **All Media Types Supported**: Documents, videos, audios, photos, voice notes, video notes, and stickers.
 - **Permanent Link Revocation**: One-tap 🗑️ **Delete / Revoke** button with two-step confirmation window allows uploaders and admins to permanently remove files from storage.
+- **User Ban System**: Admins ban abusers with `/ban <id|@username> [reason]`. Banned users get an NSFW-policy notice with the admin contact, are blocked from every command and button, and the ban list persists in MongoDB.
 - **Zero-Crash MongoDB Integration**: Gracefully runs even if `DATABASE_URI` is unset or MongoDB is temporarily unreachable.
 - **Clean SIGTERM Shutdown**: Graceful cleanup handles Heroku R12 / Koyeb termination cleanly without killing active connections or corrupting downloads.
 
@@ -135,7 +138,7 @@ docker run -d -p 8080:8080 --env-file .env --name file2link_app file2link
 | `SHORTLINK_URL` | Optional | Shortener base site URL (e.g. `api.shareus.io`, `gplinks.com`). |
 | `SHORTLINK_API` | Optional | Shortener API key. |
 | `ISGD` | Optional | Enable free `is.gd` shortener (`True` / `False`). |
-| `AUTO_RESTART` | Optional | Periodic graceful restart trigger (default: `True`, 6-hour interval). |
+| `AUTO_RESTART` | Optional | Periodic graceful restart trigger (default: `True`, 4-hour interval; set `False` to avoid cutting live streams). |
 
 ---
 
@@ -147,6 +150,9 @@ docker run -d -p 8080:8080 --env-file .env --name file2link_app file2link
 | `/how` | Everyone | Comprehensive user guide on how to stream, download, and revoke links. |
 | `/stats` | Admins | Real-time system diagnostics (RAM, CPU, Uptime, Network I/O, User count). |
 | `/broadcast` | Admins | Broadcast a replied message to all registered bot users in MongoDB. |
+| `/ban` | Admins | `/ban <user_id \| @username> [reason]` (or reply to a user). Bans the user, notifies them (NSFW / contact admin) and saves to MongoDB. |
+| `/unban` | Admins | `/unban <user_id \| @username>` lifts a ban and notifies the user. |
+| `/banlist` | Admins | Show the latest banned users with reasons. |
 | `/restart` | Admins | Trigger a graceful SIGTERM restart with in-flight stream and client safety. |
 
 ---
@@ -172,7 +178,7 @@ FileToLink/
 ├── Script.py                  # Localized Telegram text formatting & banners
 ├── utils.py                   # URL shortener service wrappers & temporary state
 ├── database/
-│   └── users_chats_db.py      # Async MongoDB persistence layer with fail-safe guards
+│   └── users_chats_db.py      # Async MongoDB layer: users + banned_users (cached) with fail-safe guards
 ├── lib/
 │   ├── bot/
 │   │   ├── __init__.py        # Primary Pyrogram client definition
@@ -193,9 +199,23 @@ FileToLink/
     ├── route.py               # aiohttp streaming engine, RFC 206 byte-range handler
     ├── start.py               # Media receiver, HTML escaping, link generator & revoker
     ├── broadcast.py           # Admin broadcasting with FloodWait & error handlers
+    ├── ban.py                 # /ban, /unban, /banlist + global banned-user gate
     ├── etc.py                 # Live hardware & process stats with refresh buttons
     └── selfping.py            # Self-ping keepalive loop
 ```
+
+---
+
+## 🧾 Changelog
+
+Current version code: **`v1.2.0`** (also exposed as `__version__` in `lib/__init__.py`).
+
+| Version | Changes |
+|---|---|
+| **v1.2.0** | 🚫 Ban system (`/ban`, `/unban`, `/banlist`, MongoDB `banned_users`, NSFW notice + admin contact) · 🎬 Seek/buffering fixes: leaked stream cleanup, sliding-window prefetch, HEAD handled without Telegram fetch, fail-fast on expired file references, no bot restart on a single bad chunk · Removed duplicate Telegram call per watch page · README refresh |
+| **v1.1** | Multi-client load balancing, revoke button, graceful SIGTERM shutdown, URL sanitizer |
+
+Bump the version in `lib/__init__.py` and add a row here on every release.
 
 ---
 
