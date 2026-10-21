@@ -86,7 +86,7 @@ flowchart TD
 |---|---|
 | **Koyeb** *(Recommended)* | [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/GouthamSER/FileToLink&branch=main&builder=dockerfile) |
 | **Heroku** | [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/GouthamSER/FileToLink) |
-| **Heroku (Colab, container stack)** | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GouthamSER/FileToLink/blob/main/Deploy_to_Heroku.ipynb) — enter Heroku email + API key + env vars, notebook builds & deploys via `heroku.yml` |
+| **Heroku (Colab, container stack)** | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1U_bWcaWD8pdRqFknp72yA1z_w28g5S5k?usp=sharing) — enter Heroku email + API key + env vars, notebook builds & deploys via `heroku.yml` |
 | **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/GouthamSER/FileToLink) |
 
 ---
