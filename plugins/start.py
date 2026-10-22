@@ -168,7 +168,11 @@ async def stream_start(client, message):
         filename = get_name(message) or "file"
         username = message.from_user.mention
 
-        log_msg = await client.send_cached_media(chat_id=LOG_CHANNEL, file_id=fileid)
+        log_msg = await client.send_cached_media(
+            chat_id=LOG_CHANNEL,
+            file_id=fileid,
+            caption=filename[:1024]
+        )
 
         file_hash = get_hash(log_msg)
 
