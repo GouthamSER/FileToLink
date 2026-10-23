@@ -32,7 +32,15 @@ files = glob.glob(ppath)
 
 RESTART_INTERVAL = 4 * 60 * 60  # 4 Hours
 
-loop = asyncio.get_event_loop()
+# uvloop = faster event loop (installed by the dzgram[fast] extra)
+try:
+    import uvloop
+    uvloop.install()
+except ImportError:
+    pass
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 # ================= BANNER =================
 def print_banner():
