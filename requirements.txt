@@ -1,5 +1,4 @@
-dzgram[fast]
-TgCrypto
+wzgram[fast]
 aiohttp[speedups]
 python-dotenv<=0.20.0
 motor
