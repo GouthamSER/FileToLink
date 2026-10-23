@@ -1,12 +1,3 @@
-# uvloop MUST be installed before anything creates a pyrogram Client / event
-# loop (Client grabs the loop at import time in lib/bot). Installing it later
-# => "attached to a different loop" crash.
-try:
-    import uvloop
-    uvloop.install()
-except ImportError:
-    pass
-
 import sys, glob, importlib, logging, logging.config, pytz, asyncio, os, signal
 from pathlib import Path
 from datetime import date, datetime
