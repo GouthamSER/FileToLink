@@ -1,3 +1,12 @@
+# uvloop MUST be installed before anything creates a pyrogram Client / event
+# loop (Client grabs the loop at import time in lib/bot). Installing it later
+# => "attached to a different loop" crash.
+try:
+    import uvloop
+    uvloop.install()
+except ImportError:
+    pass
+
 import sys, glob, importlib, logging, logging.config, pytz, asyncio, os, signal
 from pathlib import Path
 from datetime import date, datetime
@@ -32,15 +41,7 @@ files = glob.glob(ppath)
 
 RESTART_INTERVAL = 4 * 60 * 60  # 4 Hours
 
-# uvloop = faster event loop (installed by the dzgram[fast] extra)
-try:
-    import uvloop
-    uvloop.install()
-except ImportError:
-    pass
-
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+loop = asyncio.get_event_loop()
 
 # ================= BANNER =================
 def print_banner():
