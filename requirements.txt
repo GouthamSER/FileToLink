@@ -1,4 +1,4 @@
-dzgram==2.3.37
+wzgram[fast]
 TgCrypto
 aiohttp[speedups]
 python-dotenv<=0.20.0
