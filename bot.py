@@ -1,4 +1,12 @@
 import sys, glob, importlib, logging, logging.config, pytz, asyncio, os, signal
+
+# uvloop = much faster event loop (big win for high-throughput streaming).
+# MUST be installed before pyrogram Client is created (it grabs the loop).
+try:
+    import uvloop
+    uvloop.install()
+except ImportError:
+    pass
 from pathlib import Path
 from datetime import date, datetime
 from plugins.selfping import self_ping_task # selfping from plugin
@@ -21,7 +29,7 @@ from utils import temp
 from Script import script
 from plugins import web_server
 
-from lib.bot import File2Link
+from lib.bot import File2Link, work_loads
 from lib.util.keepalive import ping_server
 from lib.bot.clients import initialize_clients, stop_clients
 from lib.util.custom_dl import cancel_all_producers
@@ -31,6 +39,7 @@ ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
 RESTART_INTERVAL = 4 * 60 * 60  # 4 Hours
+IDLE_POLL = 30  # sec; restart waits until no stream is active
 
 loop = asyncio.get_event_loop()
 
@@ -44,6 +53,11 @@ def print_banner():
 # ================= AUTO RESTART =================
 async def auto_restart():
     await asyncio.sleep(RESTART_INTERVAL)
+
+    # Never kill live downloads: wait until every stream is finished.
+    while sum(work_loads.values()) > 0:
+        logging.info("Auto restart delayed: %s active stream(s)", sum(work_loads.values()))
+        await asyncio.sleep(IDLE_POLL)
 
     try:
         tz = pytz.timezone("Asia/Kolkata")
