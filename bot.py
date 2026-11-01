@@ -4,9 +4,12 @@ import sys, glob, importlib, logging, logging.config, pytz, asyncio, os, signal
 # MUST be installed before pyrogram Client is created (it grabs the loop).
 try:
     import uvloop
-    uvloop.install()
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     pass
+# uvloop policy does NOT auto-create a loop -> create + set it explicitly,
+# before anything (pyrogram Client, get_event_loop below) asks for one.
+asyncio.set_event_loop(asyncio.new_event_loop())
 from pathlib import Path
 from datetime import date, datetime
 from plugins.selfping import self_ping_task # selfping from plugin
