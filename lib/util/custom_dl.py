@@ -1,3 +1,4 @@
+import os
 import math
 import asyncio
 import logging
@@ -18,16 +19,28 @@ from pyrogram.file_id import FileId, FileType, ThumbnailSource
 # Telegram GetFile uses 1 MiB chunks.
 CHUNK_SIZE = 1024 * 1024
 
-# Number of chunks fetched in parallel by ONE HTTP stream.
-# Keep this moderate to reduce FloodWait risk.
-CONCURRENT_FETCHES = 3
+def _env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.environ.get(name, default)))
+    except (TypeError, ValueError):
+        return default
 
-# Number of chunks kept ready in the HTTP pipeline.
-PREFETCH_SIZE = 6
+
+# Number of chunks fetched in parallel by ONE HTTP stream.
+# One Telegram connection is latency bound: more requests in flight = more
+# speed. Env tunable: STREAM_CONCURRENCY.
+CONCURRENT_FETCHES = _env_int("STREAM_CONCURRENCY", 6)
+
+# Number of chunks kept ready in the HTTP pipeline (memory = N MiB/stream).
+PREFETCH_SIZE = _env_int("STREAM_PREFETCH", 10)
 
 # Maximum simultaneous Telegram GetFile requests handled by ONE
 # Telegram client across ALL users/streams using that client.
-MAX_CLIENT_FETCHES = 4
+MAX_CLIENT_FETCHES = _env_int("CLIENT_MAX_FETCHES", 12)
+
+# Per-request timeout. Session.send default is 15s -> false timeouts on slow
+# links. Pyrogram's own downloader uses MEDIA_WAIT_TIMEOUT (60s).
+FETCH_TIMEOUT = getattr(Session, "MEDIA_WAIT_TIMEOUT", 60)
 
 # How long file properties remain cached.
 CACHE_CLEAN_INTERVAL = 30 * 60
@@ -218,92 +231,90 @@ class ByteStreamer:
             thumb_size=file_id.thumbnail_size,
         )
 
+    async def refresh_location(self, message_id: int):
+        """Re-read message -> fresh file_reference. Fixes FILE_REFERENCE_EXPIRED
+        mid-download instead of killing the stream."""
+        self.cached_file_ids.pop(message_id, None)
+        file_id = await self.generate_file_properties(message_id)
+        return file_id, await self.get_location(file_id)
+
     async def _fetch_chunk(
         self,
         media_session: Session,
-        location,
+        state: dict,
         offset: int,
         chunk_size: int,
         client_index,
-        retries: int = 7,
+        file_size: int,
+        message_id: int = None,
+        retries: int = 8,
     ) -> bytes:
+        """Fetch ONE full chunk. Never returns a short/empty chunk unless EOF.
+
+        Telegram may answer a GetFile with fewer bytes than asked; old code
+        passed that on as-is -> silent truncation / corrupt file. Here we
+        top up until the chunk is complete, and retry on any transient error.
+        """
         semaphore = _get_client_semaphore(self.client)
+        expected = min(chunk_size, file_size - offset) if file_size else chunk_size
         delay = 1
         last_exc = None
+        refreshed = False
 
         for attempt in range(1, retries + 1):
             try:
-                # This semaphore is PER TELEGRAM CLIENT, not per user.
-                async with semaphore:
-                    result = await media_session.send(
-                        raw.functions.upload.GetFile(
-                            location=location,
-                            offset=offset,
-                            limit=chunk_size,
+                buf = bytearray()
+                while len(buf) < expected:
+                    # Semaphore is PER TELEGRAM CLIENT, not per user.
+                    async with semaphore:
+                        result = await media_session.invoke(
+                            raw.functions.upload.GetFile(
+                                location=state["location"],
+                                offset=offset + len(buf),
+                                limit=chunk_size,
+                            ),
+                            timeout=FETCH_TIMEOUT,
                         )
-                    )
-
-                if isinstance(result, raw.types.upload.File):
-                    return result.bytes
-                return b""
+                    data = result.bytes if isinstance(result, raw.types.upload.File) else b""
+                    if not data:
+                        raise ConnectionError(
+                            f"empty GetFile reply at offset {offset + len(buf)} "
+                            f"(have {len(buf)}/{expected})"
+                        )
+                    buf += data
+                # Telegram can over-return when offset isn't chunk-aligned; trim.
+                return bytes(buf[:expected]) if len(buf) > expected else bytes(buf)
 
             except FloodWait as exc:
                 last_exc = exc
                 wait = int(exc.value) + 1
                 logging.warning(
-                    "Client %s FloodWait %ss at offset %s "
-                    "(attempt %s/%s)",
-                    client_index,
-                    wait,
-                    offset,
-                    attempt,
-                    retries,
+                    "Client %s FloodWait %ss at offset %s (attempt %s/%s)",
+                    client_index, wait, offset, attempt, retries,
                 )
                 await asyncio.sleep(wait)
 
-            except (TimeoutError, asyncio.TimeoutError) as exc:
-                last_exc = exc
-                logging.warning(
-                    "Client %s Timeout at offset %s (attempt %s/%s), retrying in %ss",
-                    client_index,
-                    offset,
-                    attempt,
-                    retries,
-                    delay,
-                )
-                await asyncio.sleep(delay)
-                delay = min(delay * 2, 10)
-
-            except (ConnectionError, ConnectionResetError, OSError) as exc:
-                last_exc = exc
-                logging.warning(
-                    "Connection error at offset %s (attempt %s/%s), "
-                    "retrying in %ss: %s",
-                    offset,
-                    attempt,
-                    retries,
-                    delay,
-                    exc,
-                )
-                await asyncio.sleep(delay)
-                delay = min(delay * 2, 10)
-
-            except BadRequest:
-                # FILE_REFERENCE_EXPIRED, LOCATION_INVALID, OFFSET_INVALID...
-                # Retrying the same request can never succeed; fail fast
-                # instead of stalling the player ~35s.
+            except BadRequest as exc:
+                # FILE_REFERENCE_EXPIRED: refresh once and retry. Other
+                # BadRequests (LOCATION_INVALID, OFFSET_INVALID) can never
+                # succeed -> fail fast.
+                if (
+                    not refreshed
+                    and message_id is not None
+                    and "FILE_REFERENCE" in str(exc).upper()
+                ):
+                    refreshed = True
+                    last_exc = exc
+                    logging.warning("File reference expired, refreshing msg %s", message_id)
+                    _, state["location"] = await self.refresh_location(message_id)
+                    continue
                 raise
 
-            except RPCError as exc:
+            except (TimeoutError, asyncio.TimeoutError, ConnectionError, OSError, RPCError) as exc:
                 last_exc = exc
                 logging.warning(
-                    "Telegram RPC error at offset %s (attempt %s/%s), "
-                    "retrying in %ss: %s",
-                    offset,
-                    attempt,
-                    retries,
-                    delay,
-                    exc,
+                    "Client %s error at offset %s (attempt %s/%s), retry in %ss: %r",
+                    client_index, offset, attempt, retries, delay, exc,
                 )
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, 10)
@@ -333,7 +344,8 @@ class ByteStreamer:
 
         try:
             media_session = await self.generate_media_session(self.client, file_id)
-            location = await self.get_location(file_id)
+            state = {"location": await self.get_location(file_id)}
+            file_size = getattr(file_id, "file_size", 0) or 0
 
             offsets = [
                 offset + i * chunk_size
@@ -356,7 +368,8 @@ class ByteStreamer:
                     pending.append(
                         asyncio.ensure_future(
                             self._fetch_chunk(
-                                media_session, location, off, chunk_size, index
+                                media_session, state, off, chunk_size,
+                                index, file_size, message_id,
                             )
                         )
                     )
@@ -415,19 +428,25 @@ class ByteStreamer:
                 if isinstance(item, Exception):
                     raise item
 
-                if not item:
-                    break
-
                 if part_count == 1:
-                    yield item[first_part_cut:last_part_cut]
+                    out = item[first_part_cut:last_part_cut]
                 elif current_part == 1:
-                    yield item[first_part_cut:]
+                    out = item[first_part_cut:]
                 elif current_part == part_count:
-                    yield item[:last_part_cut]
+                    out = item[:last_part_cut]
                 else:
-                    yield item
+                    out = item
 
+                yield out
                 current_part += 1
+
+            # Producer ended early (no exception) = missing parts. Raise so
+            # route closes socket -> client sees short body and re-requests,
+            # instead of a silently truncated "finished" file.
+            if current_part <= part_count:
+                raise IOError(
+                    f"stream ended early: got {current_part - 1}/{part_count} parts"
+                )
 
         except (GeneratorExit, asyncio.CancelledError):
             stop_event.set()
@@ -465,4 +484,4 @@ async def cancel_all_producers() -> None:
         logging.info(
             "Cancelled %s active stream producer task(s)",
             len(tasks),
-        )
+    )
