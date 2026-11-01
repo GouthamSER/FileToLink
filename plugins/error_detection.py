@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 import pytz
 
-from lib.bot import File2Link
+from lib.bot import File2Link, work_loads
 from info import LOG_CHANNEL
 
 # Errors commonly seen on Koyeb / upstream proxies
@@ -33,6 +33,11 @@ _last_restart = 0
 async def restart_bot(reason: str):
     global _last_restart
     now_ts = asyncio.get_event_loop().time()
+
+    # A restart kills every live download. Never do it while streams run.
+    if sum(work_loads.values()) > 0:
+        logging.warning("Restart skipped (active streams: %s)", sum(work_loads.values()))
+        return
 
     # Prevent restart loop
     if now_ts - _last_restart < RESTART_COOLDOWN:
