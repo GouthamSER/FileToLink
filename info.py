@@ -5,7 +5,7 @@ from os import environ
 id_pattern = re.compile(r'^\d+$')
 
 # Bot information
-SESSION = environ.get('SESSION', '')
+SESSION = environ.get('SESSION', 'FileToLink')
 API_ID = int(environ.get('API_ID') or 0)
 API_HASH = environ.get('API_HASH', '')
 BOT_TOKEN = environ.get('BOT_TOKEN', "")
@@ -70,4 +70,3 @@ ISGD = environ.get('ISGD', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK = environ.get('SHORTLINK', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK_URL = environ.get('SHORTLINK_URL', '')
 SHORTLINK_API = environ.get('SHORTLINK_API', '')
-
