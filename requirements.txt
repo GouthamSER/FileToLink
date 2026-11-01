@@ -11,3 +11,4 @@ shortzy
 jinja2
 humanize
 pytz
+uvloop
