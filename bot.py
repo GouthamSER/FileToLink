@@ -36,6 +36,7 @@ from lib.bot import File2Link, work_loads
 from lib.util.keepalive import ping_server
 from lib.bot.clients import initialize_clients, stop_clients
 from lib.util.custom_dl import cancel_all_producers
+from lib.util.set_commands import set_bot_commands
 
 # ================= CONFIG =================
 ppath = "plugins/*.py"
@@ -123,6 +124,9 @@ async def start():
     temp.ME = me.id
     temp.U_NAME = me.username
     temp.B_NAME = me.first_name
+
+    # Auto-register command menu on every startup
+    await set_bot_commands(File2Link)
 
     # Restart Message
     tz = pytz.timezone("Asia/Kolkata")
