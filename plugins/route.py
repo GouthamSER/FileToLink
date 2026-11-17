@@ -13,7 +13,7 @@ from aiohttp.http_exceptions import BadStatusLine
 from lib.bot import File2Link, multi_clients, work_loads
 from lib.server.exceptions import FIleNotFound, InvalidHash
 from lib import StartTime, __version__
-from lib.util.custom_dl import ByteStreamer, CHUNK_SIZE
+from lib.util.custom_dl import ByteStreamer, CHUNK_SIZE, _STREAM_SLOTS, _IP_STREAMS, MAX_STREAMS_PER_IP
 from lib.util.time_format import get_readable_time
 from lib.util.render_template import render_page, render_home_page
 from plugins.error_detection import detect_error
@@ -195,6 +195,24 @@ async def media_streamer(
     if not multi_clients:
         raise web.HTTPServiceUnavailable(text="No Telegram clients available")
 
+    # Heroku router appends real client IP as LAST X-Forwarded-For entry.
+    xff = request.headers.get("X-Forwarded-For", "")
+    ip = xff.split(",")[-1].strip() if xff else (request.remote or "?")
+    if _IP_STREAMS.get(ip, 0) >= MAX_STREAMS_PER_IP:
+        raise web.HTTPTooManyRequests(
+            text="Too many parallel connections from your IP",
+            headers={"Retry-After": "2"},
+        )
+
+    # RAM guard: too many parallel streams -> R14. Tell client to retry.
+    if _STREAM_SLOTS.locked():
+        raise web.HTTPServiceUnavailable(
+            text="Server busy, retry shortly",
+            headers={"Retry-After": "2"},
+        )
+    await _STREAM_SLOTS.acquire()
+    _IP_STREAMS[ip] = _IP_STREAMS.get(ip, 0) + 1
+
     # Atomic pick + reservation: no await between these operations.
     index = min(work_loads, key=work_loads.get)
     work_loads[index] += 1
@@ -344,6 +362,12 @@ async def media_streamer(
         return response
 
     finally:
+        _STREAM_SLOTS.release()
+        n = _IP_STREAMS.get(ip, 1) - 1
+        if n <= 0:
+            _IP_STREAMS.pop(ip, None)
+        else:
+            _IP_STREAMS[ip] = n
         # Handles failures occurring before yield_file() takes ownership.
         if reserved and index in work_loads and work_loads[index] > 0:
             work_loads[index] -= 1

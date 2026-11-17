@@ -29,14 +29,25 @@ def _env_int(name: str, default: int) -> int:
 # Number of chunks fetched in parallel by ONE HTTP stream.
 # One Telegram connection is latency bound: more requests in flight = more
 # speed. Env tunable: STREAM_CONCURRENCY.
-CONCURRENT_FETCHES = _env_int("STREAM_CONCURRENCY", 6)
+CONCURRENT_FETCHES = _env_int("STREAM_CONCURRENCY", 3)
 
 # Number of chunks kept ready in the HTTP pipeline (memory = N MiB/stream).
-PREFETCH_SIZE = _env_int("STREAM_PREFETCH", 10)
+PREFETCH_SIZE = _env_int("STREAM_PREFETCH", 2)
 
 # Maximum simultaneous Telegram GetFile requests handled by ONE
 # Telegram client across ALL users/streams using that client.
-MAX_CLIENT_FETCHES = _env_int("CLIENT_MAX_FETCHES", 12)
+MAX_CLIENT_FETCHES = _env_int("CLIENT_MAX_FETCHES", 8)
+
+# HARD RAM CAP: max simultaneous HTTP streams on the whole dyno.
+# Worst-case RAM ~= MAX_ACTIVE_STREAMS * (CONCURRENT_FETCHES + PREFETCH_SIZE + 1) MiB.
+# Default 12 * 6 = ~72 MiB. Heroku eco = 512 MB, so this leaves room for Python+Pyrogram.
+MAX_ACTIVE_STREAMS = _env_int("MAX_ACTIVE_STREAMS", 12)
+_STREAM_SLOTS = asyncio.Semaphore(MAX_ACTIVE_STREAMS)
+
+# Max simultaneous streams per user IP. Stops one FDM user (16 connections)
+# from taking every slot. Others still get served.
+MAX_STREAMS_PER_IP = _env_int("MAX_STREAMS_PER_IP", 3)
+_IP_STREAMS: Dict[str, int] = {}
 
 # Per-request timeout. Session.send default is 15s -> false timeouts on slow
 # links. Pyrogram's own downloader uses MEDIA_WAIT_TIMEOUT (60s).
@@ -283,7 +294,9 @@ class ByteStreamer:
                         )
                     buf += data
                 # Telegram can over-return when offset isn't chunk-aligned; trim.
-                return bytes(buf[:expected]) if len(buf) > expected else bytes(buf)
+                if len(buf) > expected:
+                    del buf[expected:]
+                return buf
 
             except FloodWait as exc:
                 last_exc = exc
@@ -428,16 +441,19 @@ class ByteStreamer:
                 if isinstance(item, Exception):
                     raise item
 
+                # memoryview slice = zero-copy (bytes slice copies up to 1 MiB each)
+                mv = memoryview(item)
                 if part_count == 1:
-                    out = item[first_part_cut:last_part_cut]
+                    out = mv[first_part_cut:last_part_cut]
                 elif current_part == 1:
-                    out = item[first_part_cut:]
+                    out = mv[first_part_cut:]
                 elif current_part == part_count:
-                    out = item[:last_part_cut]
+                    out = mv[:last_part_cut]
                 else:
-                    out = item
+                    out = mv
 
                 yield out
+                del out, mv, item
                 current_part += 1
 
             # Producer ended early (no exception) = missing parts. Raise so
