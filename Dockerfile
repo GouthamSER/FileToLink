@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Install system deps & clean cache in one layer (smaller image)
 RUN apt-get update && apt-get upgrade -y && \
