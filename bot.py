@@ -42,8 +42,8 @@ from lib.util.set_commands import set_bot_commands
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 
-RESTART_INTERVAL = 4 * 60 * 60  # 4 Hours
-IDLE_POLL = 30  # sec; restart waits until no stream is active
+RESTART_INTERVAL = 3 * 60 * 60  # 3 Hours
+IDLE_POLL = 15  # sec; restart waits until no stream is active
 
 loop = asyncio.get_event_loop()
 
