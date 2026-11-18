@@ -196,22 +196,25 @@ async def media_streamer(
         raise web.HTTPServiceUnavailable(text="No Telegram clients available")
 
     # Heroku router appends real client IP as LAST X-Forwarded-For entry.
+    # HEAD = metadata only (the app sends one per download): never counted or limited.
+    is_head = request.method == "HEAD"
     xff = request.headers.get("X-Forwarded-For", "")
     ip = xff.split(",")[-1].strip() if xff else (request.remote or "?")
-    if _IP_STREAMS.get(ip, 0) >= MAX_STREAMS_PER_IP:
+    if not is_head and _IP_STREAMS.get(ip, 0) >= MAX_STREAMS_PER_IP:
         raise web.HTTPTooManyRequests(
             text="Too many parallel connections from your IP",
             headers={"Retry-After": "2"},
         )
 
     # RAM guard: too many parallel streams -> R14. Tell client to retry.
-    if _STREAM_SLOTS.locked():
+    if not is_head and _STREAM_SLOTS.locked():
         raise web.HTTPServiceUnavailable(
             text="Server busy, retry shortly",
             headers={"Retry-After": "2"},
         )
-    await _STREAM_SLOTS.acquire()
-    _IP_STREAMS[ip] = _IP_STREAMS.get(ip, 0) + 1
+    if not is_head:
+        await _STREAM_SLOTS.acquire()
+        _IP_STREAMS[ip] = _IP_STREAMS.get(ip, 0) + 1
 
     # Atomic pick + reservation: no await between these operations.
     index = min(work_loads, key=work_loads.get)
@@ -362,12 +365,13 @@ async def media_streamer(
         return response
 
     finally:
-        _STREAM_SLOTS.release()
-        n = _IP_STREAMS.get(ip, 1) - 1
-        if n <= 0:
-            _IP_STREAMS.pop(ip, None)
-        else:
-            _IP_STREAMS[ip] = n
+        if not is_head:
+            _STREAM_SLOTS.release()
+            n = _IP_STREAMS.get(ip, 1) - 1
+            if n <= 0:
+                _IP_STREAMS.pop(ip, None)
+            else:
+                _IP_STREAMS[ip] = n
         # Handles failures occurring before yield_file() takes ownership.
         if reserved and index in work_loads and work_loads[index] > 0:
             work_loads[index] -= 1

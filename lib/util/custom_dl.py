@@ -46,7 +46,7 @@ _STREAM_SLOTS = asyncio.Semaphore(MAX_ACTIVE_STREAMS)
 
 # Max simultaneous streams per user IP. Stops one FDM user (16 connections)
 # from taking every slot. Others still get served.
-MAX_STREAMS_PER_IP = _env_int("MAX_STREAMS_PER_IP", 3)
+MAX_STREAMS_PER_IP = _env_int("MAX_STREAMS_PER_IP", 6)
 _IP_STREAMS: Dict[str, int] = {}
 
 # Per-request timeout. Session.send default is 15s -> false timeouts on slow

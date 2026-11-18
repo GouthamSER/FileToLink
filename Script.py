@@ -27,4 +27,4 @@ class script(object):
 ⏰ ᴛɪᴍᴇ  : <code>{}</code>
 🌏 ᴢᴏɴᴇ  : <code>Asia/Kolkata</code>
 🛠️ sᴛᴀᴛᴜs : <code>[ ᴏɴʟɪɴᴇ ✅ ]</code>
-⚙️ ʙᴜɪʟᴅ  : <code>[ V1.3.0 🚀 ]</code></b>"""
+⚙️ ʙᴜɪʟᴅ  : <code>[ V2 🚀 ]</code></b>"""
