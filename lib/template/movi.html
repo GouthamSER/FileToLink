@@ -3,109 +3,277 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{file_name}} · Advanced Player</title>
+<title>{{file_name}} — File ² Link Player</title>
+<meta name="author" content="Goutham Josh (@GouthamSER)">
+<meta property="og:title" content="{{file_name}}">
+<meta property="og:description" content="Stream and download {{file_name}} ({{file_size}}) with high-speed MTProto streaming.">
+<meta property="og:type" content="video.other">
+<meta property="og:url" content="{{movi_url}}">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 <style>
-  :root{--bg:#07070b;--surface:#0e0e16;--elev:#151522;--line:rgba(255,255,255,.08);--text:#f8fafc;--muted:#94a3b8;--purple:#8b5cf6;--cyan:#06b6d4;--rose:#f43f5e;--green:#10b981}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;min-height:100vh}
-  header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .brand{color:var(--text);text-decoration:none;font-weight:700;letter-spacing:.5px}
-  .brand b{color:var(--purple)}
-  .nav{display:flex;gap:8px;flex-wrap:wrap}
-  .pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--elev);color:var(--text);text-decoration:none;font-size:13px;cursor:pointer}
-  .pill:hover{border-color:var(--purple)}
-  .pill.primary{background:var(--purple);border-color:var(--purple)}
-  main{max-width:1100px;margin:0 auto;padding:16px}
-  h1{font-size:18px;margin:4px 0 12px;word-break:break-word}
-  .stage{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;aspect-ratio:16/9;position:relative}
-  movi-player{display:block;width:100%;height:100%}
-  .audio-only .stage{aspect-ratio:auto;height:180px}
-  .banner{display:none;margin:10px 0;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.4;border:1px solid var(--line);background:var(--elev)}
+  :root{
+    --bg:#06060c;
+    --text:#f8fafc; --muted:#a3b1c6; --dim:#6b7a90;
+    --purple:#8b5cf6; --cyan:#06b6d4; --green:#10b981; --rose:#f43f5e; --amber:#f59e0b;
+    --glass:rgba(255,255,255,.055);
+    --glass-strong:rgba(255,255,255,.09);
+    --glass-border:rgba(255,255,255,.14);
+    --glass-hi:rgba(255,255,255,.28);
+    --r-sm:10px; --r-md:16px; --r-lg:24px; --r-full:999px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{color-scheme:dark}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;line-height:1.5;overflow-x:hidden;position:relative;
+  }
+
+  /* ---------- Liquid background ---------- */
+  .liquid{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
+  .b1{width:46vmax;height:46vmax;left:-12vmax;top:-14vmax;background:radial-gradient(circle at 30% 30%,#8b5cf6,#4c1d95 70%);animation:f1 22s ease-in-out infinite alternate}
+  .b2{width:40vmax;height:40vmax;right:-14vmax;top:22%;background:radial-gradient(circle at 60% 40%,#06b6d4,#0e4a63 70%);animation:f2 26s ease-in-out infinite alternate}
+  .b3{width:34vmax;height:34vmax;left:18%;bottom:-16vmax;background:radial-gradient(circle at 50% 50%,#f43f5e,#7f1d3a 70%);opacity:.32;animation:f3 30s ease-in-out infinite alternate}
+  @keyframes f1{to{transform:translate(14vmax,10vmax) scale(1.15)}}
+  @keyframes f2{to{transform:translate(-12vmax,-8vmax) scale(.9)}}
+  @keyframes f3{to{transform:translate(10vmax,-12vmax) scale(1.2)}}
+  @media (max-width:640px){.blob{filter:blur(60px)}}
+  @media (prefers-reduced-motion:reduce){.blob,.disc{animation:none!important}}
+
+  /* ---------- Glass primitive ---------- */
+  .glass{
+    position:relative;
+    background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
+    -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+    border:1px solid var(--glass-border);
+    box-shadow:0 18px 50px -12px rgba(0,0,0,.65),inset 0 1px 0 var(--glass-hi),inset 0 -1px 0 rgba(255,255,255,.05);
+  }
+  .glass::before{ /* specular highlight */
+    content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:radial-gradient(120% 60% at 15% -10%,rgba(255,255,255,.18),transparent 55%);
+    mix-blend-mode:screen;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky;top:0;z-index:100;margin:12px 12px 0;padding:10px 16px;border-radius:var(--r-full);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:800;font-size:1.05rem;letter-spacing:-.02em;position:relative}
+  .brand-icon{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#fff;box-shadow:0 0 18px rgba(139,92,246,.55),inset 0 1px 0 rgba(255,255,255,.4)}
+  .brand b{color:var(--cyan)}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;position:relative}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r-full);
+    background:var(--glass);border:1px solid var(--glass-border);color:var(--text);text-decoration:none;font-size:.8rem;font-weight:600;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18);transition:transform .2s,border-color .2s,background .2s;
+  }
+  .pill:hover{transform:translateY(-2px);border-color:var(--purple);background:var(--glass-strong)}
+  .pill.primary{background:linear-gradient(135deg,rgba(139,92,246,.85),rgba(6,182,212,.7));border-color:rgba(255,255,255,.3)}
+
+  main{flex:1;width:100%;max-width:960px;margin:0 auto;padding:22px 14px 56px;position:relative;z-index:1}
+
+  /* ---------- Banner ---------- */
+  .banner{display:none;margin-bottom:16px;padding:12px 16px;border-radius:var(--r-md);font-size:.86rem;line-height:1.45;
+    background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.4);color:#fecdd3;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
   .banner.show{display:block}
-  .banner.err{border-color:var(--rose)}
-  .banner.warn{border-color:#f59e0b}
-  .banner a{color:var(--cyan)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
-  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
-  .card h2{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-  select,input[type=range]{width:100%;background:var(--elev);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px}
-  input[type=range]{padding:0}
-  .row{display:flex;align-items:center;gap:8px;margin-top:8px}
-  .row span{font-size:12px;color:var(--muted);min-width:64px;text-align:right}
-  .btn{background:var(--elev);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
-  .btn:hover{border-color:var(--purple)}
-  .meta{font-size:13px;color:var(--muted);line-height:1.6}
-  .meta b{color:var(--text)}
-  .apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
-  .app{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--elev);color:var(--text);cursor:pointer;font-size:13px;text-align:left;font-family:inherit}
-  .app:hover{border-color:var(--purple)}
-  .app i{width:18px;text-align:center;color:var(--cyan)}
-  .wide{grid-column:1/-1}
-  footer{border-top:1px solid var(--line);padding:26px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);margin-top:24px}
+  .banner.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#fde68a}
+  .banner a{color:#fff;font-weight:700}
+
+  /* ---------- Player ---------- */
+  .player-card{border-radius:var(--r-lg);padding:8px;margin-bottom:20px}
+  .stage{background:#000;border-radius:calc(var(--r-lg) - 8px);overflow:hidden;aspect-ratio:16/9;position:relative;border:1px solid rgba(255,255,255,.06)}
+  movi-player{display:block;width:100%;height:100%}
+  .audio-only .stage{aspect-ratio:auto;height:150px}
+  .audio-only .player-card{margin-top:0}
+
+  .disc-card{display:none;border-radius:var(--r-lg);padding:30px 20px 22px;margin-bottom:12px;flex-direction:column;align-items:center;text-align:center}
+  .audio-only .disc-card{display:flex}
+  .disc{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,#2a2a2a 20%,#101010 60%,#333 100%);border:4px solid rgba(255,255,255,.1);
+    box-shadow:0 10px 30px rgba(0,0,0,.8),0 0 28px rgba(139,92,246,.45);display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+    animation:spin 14s linear infinite;animation-play-state:paused;position:relative}
+  .disc.on{animation-play-state:running}
+  .disc i{width:42px;height:42px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- Info panel ---------- */
+  .panel{border-radius:var(--r-lg);padding:24px;margin-bottom:20px}
+  .panel>*{position:relative}
+  .file-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+  .file-title{font-size:1.2rem;font-weight:700;letter-spacing:-.015em;line-height:1.4;word-break:break-word}
+  .fmt{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:var(--r-sm);background:rgba(139,92,246,.18);color:#c4b5fd;border:1px solid rgba(139,92,246,.4);flex-shrink:0}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-full);font-size:.76rem;color:var(--muted);font-family:'JetBrains Mono',monospace;background:var(--glass);border:1px solid var(--glass-border)}
+  .badge.a{color:var(--cyan);border-color:rgba(6,182,212,.35);background:rgba(6,182,212,.09)}
+  .badge.s{color:var(--green);border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.09)}
+
+  .actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:26px}
+  .abtn{padding:15px 18px;border-radius:var(--r-md);font-weight:700;font-size:.92rem;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;text-decoration:none;color:#fff;
+    border:1px solid var(--glass-border);background:var(--glass);box-shadow:inset 0 1px 0 rgba(255,255,255,.2);transition:transform .22s,box-shadow .22s,border-color .22s}
+  .abtn:hover{transform:translateY(-2px);border-color:var(--purple)}
+  .abtn.dl{background:linear-gradient(135deg,rgba(6,182,212,.9),rgba(2,132,199,.85));border-color:rgba(255,255,255,.3);box-shadow:0 10px 28px rgba(6,182,212,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+  .abtn.pg{background:rgba(139,92,246,.14);border-color:rgba(139,92,246,.4);color:#ddd6fe}
+
+  .sec{font-size:.76rem;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin:0 0 12px;display:flex;align-items:center;gap:8px;font-weight:700}
+  .sec::after{content:"";flex:1;height:1px;background:var(--glass-border)}
+
+  /* ---------- Tracks ---------- */
+  .tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:26px}
+  .tcard{border-radius:var(--r-md);padding:14px;background:var(--glass);border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+  .tcard h3{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  select{width:100%;appearance:none;-webkit-appearance:none;background:rgba(0,0,0,.35);color:var(--text);border:1px solid var(--glass-border);border-radius:var(--r-sm);padding:10px 12px;font-size:.88rem;font-family:inherit}
+  select:disabled{opacity:.55}
+  select option{background:#12121c;color:#fff}
+  input[type=range]{flex:1;accent-color:var(--purple);min-width:0}
+  .drow{display:flex;align-items:center;gap:8px;margin-top:10px}
+  .drow span{font-size:.74rem;color:var(--muted);min-width:46px;text-align:right;font-family:'JetBrains Mono',monospace}
+  .sbtn{background:var(--glass);color:var(--text);border:1px solid var(--glass-border);border-radius:var(--r-sm);padding:6px 10px;cursor:pointer;font-size:.78rem;font-family:inherit}
+  .sbtn:hover{border-color:var(--purple)}
+
+  /* ---------- External apps ---------- */
+  .apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:28px}
+  .app{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 12px;border-radius:var(--r-md);text-align:center;color:#fff;cursor:pointer;font-family:inherit;
+    background:var(--glass);border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 rgba(255,255,255,.18);transition:transform .22s,border-color .22s,box-shadow .22s}
+  .app:hover{transform:translateY(-3px);border-color:var(--purple);box-shadow:0 12px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.25)}
+  .aico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+  .vlc{background:#ff7800;color:#fff}.mx{background:#1976d2;color:#fff}.np{background:#1b1b1b;color:#ff3366}.km{background:#6a1b9a;color:#fff}.pot{background:#ffd600;color:#000}.net{background:rgba(255,255,255,.08);color:var(--cyan);border:1px solid var(--glass-border)}
+  .an{font-size:.84rem;font-weight:700}.as{font-size:.68rem;color:var(--dim)}
+
+  /* ---------- Specs ---------- */
+  .specs{border-radius:var(--r-md);overflow:hidden;background:var(--glass);border:1px solid var(--glass-border);margin-bottom:22px}
+  .spec{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 18px;border-bottom:1px solid var(--glass-border);font-size:.84rem}
+  .spec:last-child{border-bottom:0}
+  .spec .l{color:var(--dim);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+  .spec .v{font-family:'JetBrains Mono',monospace;font-size:.78rem;word-break:break-all;text-align:right}
+
+  .kbar{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;padding:12px 18px;border-radius:var(--r-md);background:var(--glass);border:1px solid var(--glass-border);font-size:.74rem;color:var(--dim)}
+  .kbd{background:rgba(0,0,0,.35);border:1px solid var(--glass-border);border-radius:5px;padding:2px 6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:.7rem}
+
+  /* ---------- Footer ---------- */
+  footer{margin:auto 12px 12px;border-radius:var(--r-lg);padding:26px 16px;text-align:center;color:var(--muted);font-size:.82rem;position:relative;z-index:1}
+  footer>*{position:relative}
   .fb{font-weight:800;color:#fff;margin-bottom:6px}
-  footer a{color:var(--muted);text-decoration:none}
+  footer a{color:var(--muted);text-decoration:none;transition:color .2s}
   footer a:hover{color:var(--purple)}
   footer .dev{color:#fff;font-weight:600}
   .fl{display:flex;justify-content:center;flex-wrap:wrap;gap:18px;margin-top:12px}
-  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--elev);border:1px solid var(--line);padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
-  .toast.show{opacity:1}
+
+  /* ---------- Toast ---------- */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);padding:11px 22px;border-radius:var(--r-full);font-size:.86rem;font-weight:600;display:flex;align-items:center;gap:10px;
+    opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.2,.8,.2,1);z-index:1000;white-space:nowrap;
+    background:rgba(20,20,34,.7);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);border:1px solid rgba(139,92,246,.6);box-shadow:0 10px 30px rgba(0,0,0,.7),0 0 16px rgba(139,92,246,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:640px){
+    header{margin:8px 8px 0;border-radius:var(--r-lg)}
+    main{padding:16px 10px 40px}
+    .panel{padding:18px}
+    .file-title{font-size:1.05rem}
+    .actions{grid-template-columns:1fr}
+    .apps{grid-template-columns:repeat(3,1fr);gap:8px}
+    .kbar{display:none}
+  }
 </style>
 </head>
 <body class="{% if is_audio and not is_video %}audio-only{% endif %}">
-<header>
-  <a class="brand" href="https://t.me/wudixh12" target="_blank" rel="noopener">FILE ² <b>LINK</b></a>
+
+<div class="liquid"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<header class="glass">
+  <a class="brand" href="https://t.me/wudixh12" target="_blank" rel="noopener">
+    <div class="brand-icon"><i class="fa-solid fa-play"></i></div>
+    <span>FILE ² <b>LINK</b></span>
+  </a>
   <div class="nav">
+    <a class="pill" href="{{dl_url}}" title="Switch to Download page"><i class="fa-solid fa-download"></i> Download</a>
     <a class="pill" href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> GitHub</a>
-    <a class="pill" href="https://t.me/wudixh12" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Channel</a>
-    <a class="pill primary" href="{{dl_url}}" download><i class="fa-solid fa-download"></i> Download</a>
+    <a class="pill primary" href="https://t.me/wudixh15" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Channel</a>
   </div>
 </header>
 
 <main>
-  <h1>{{file_name}}</h1>
-
   <div id="banner" class="banner"></div>
 
-  <div class="stage" id="stage"></div>
+  <div class="disc-card glass">
+    <div class="disc" id="disc"><i class="fa-solid fa-music"></i></div>
+    <h2 class="file-title">{{file_name}}</h2>
+  </div>
 
-  <div class="grid">
-    <div class="card">
-      <h2><i class="fa-solid fa-volume-high"></i> Audio track</h2>
-      <select id="audioSel" disabled><option>Loading…</option></select>
+  <div class="player-card glass">
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <section class="panel glass">
+    <div class="file-head">
+      <h1 class="file-title">{{file_name}}</h1>
+      <div class="fmt">{{file_ext}}</div>
     </div>
-    <div class="card">
-      <h2><i class="fa-regular fa-closed-captioning"></i> Subtitles</h2>
-      <select id="subSel" disabled><option>Loading…</option></select>
-      <div class="row"><button class="btn" id="dMinus">−0.5s</button><input type="range" id="delay" min="-10" max="10" step="0.1" value="0"><button class="btn" id="dPlus">+0.5s</button><span id="dVal">0.0s</span></div>
+    <div class="badges">
+      <div class="badge a"><i class="fa-solid fa-database"></i> {{file_size}}</div>
+      <div class="badge s"><i class="fa-solid fa-bolt"></i> High Speed Stream</div>
+      <div class="badge"><i class="fa-solid fa-cube"></i> {{mime_type}}</div>
     </div>
-    <div class="card">
-      <h2><i class="fa-solid fa-circle-info"></i> File</h2>
-      <div class="meta">
-        <div><b>Size:</b> {{file_size}}</div>
-        <div><b>Type:</b> {{file_ext}} · {{mime_type}}</div>
-        <div id="trackInfo"><b>Tracks:</b> …</div>
-        <div id="memInfo"></div>
+
+    <div class="actions">
+      <a href="{{dl_url}}" class="abtn dl" download="{{file_name_raw}}"><i class="fa-solid fa-cloud-arrow-down"></i> Direct Download</a>
+      <button class="abtn" id="copyBtn"><i class="fa-solid fa-link"></i> Copy Stream Link</button>
+      <a href="{{dl_url}}" class="abtn pg"><i class="fa-solid fa-file-arrow-down"></i> Download Page</a>
+    </div>
+
+    <div class="sec"><i class="fa-solid fa-sliders"></i> Audio &amp; Subtitles</div>
+    <div class="tracks">
+      <div class="tcard">
+        <h3><i class="fa-solid fa-volume-high"></i> Audio track</h3>
+        <select id="audioSel" disabled><option>Loading…</option></select>
       </div>
-      <div class="row"><button class="btn" id="copyBtn"><i class="fa-regular fa-copy"></i> Copy link</button></div>
+      <div class="tcard">
+        <h3><i class="fa-regular fa-closed-captioning"></i> Subtitles</h3>
+        <select id="subSel" disabled><option>Loading…</option></select>
+        <div class="drow"><button class="sbtn" id="dMinus">−0.5s</button><input type="range" id="delay" min="-10" max="10" step="0.1" value="0"><button class="sbtn" id="dPlus">+0.5s</button><span id="dVal">0.0s</span></div>
+      </div>
     </div>
-  </div>
 
-  <div class="card wide" style="margin-top:12px">
-    <h2><i class="fa-solid fa-up-right-from-square"></i> Open in app</h2>
+    <div class="sec"><i class="fa-solid fa-play"></i> Open In External Player (Recommended for 4K / DTS)</div>
     <div class="apps">
-      <button class="app" data-app="vlc"><i class="fa-solid fa-traffic-cone"></i> VLC</button>
-      <button class="app" data-app="mx"><i class="fa-solid fa-play"></i> MX Player</button>
-      <button class="app" data-app="nplayer"><i class="fa-solid fa-circle-play"></i> nPlayer</button>
-      <button class="app" data-app="km"><i class="fa-solid fa-film"></i> KMPlayer</button>
-      <button class="app" data-app="pot"><i class="fa-solid fa-desktop"></i> PotPlayer</button>
-      <button class="app" id="shareBtn"><i class="fa-solid fa-share-nodes"></i> Share</button>
+      <button class="app" data-app="vlc"><div class="aico vlc"><i class="fa-solid fa-traffic-cone"></i></div><span class="an">VLC</span><span class="as">All Devices</span></button>
+      <button class="app" data-app="mx"><div class="aico mx"><i class="fa-solid fa-play"></i></div><span class="an">MX Player</span><span class="as">Android</span></button>
+      <button class="app" data-app="nplayer"><div class="aico np"><i class="fa-solid fa-circle-play"></i></div><span class="an">nPlayer</span><span class="as">iOS &amp; Mac</span></button>
+      <button class="app" data-app="km"><div class="aico km"><i class="fa-solid fa-film"></i></div><span class="an">KMPlayer</span><span class="as">Mobile</span></button>
+      <button class="app" data-app="pot"><div class="aico pot"><i class="fa-solid fa-tv"></i></div><span class="an">PotPlayer</span><span class="as">Windows PC</span></button>
+      <button class="app" id="netBtn"><div class="aico net"><i class="fa-solid fa-network-wired"></i></div><span class="an">Stream URL</span><span class="as">Kodi / Infuse</span></button>
+      <button class="app" id="shareBtn"><div class="aico net"><i class="fa-solid fa-share-nodes"></i></div><span class="an">Share</span><span class="as">Send link</span></button>
     </div>
-  </div>
+
+    <div class="sec"><i class="fa-solid fa-circle-info"></i> Stream Technical Specs</div>
+    <div class="specs">
+      <div class="spec"><span class="l">File Name</span><span class="v">{{file_name_raw}}</span></div>
+      <div class="spec"><span class="l">File Size</span><span class="v">{{file_size}}</span></div>
+      <div class="spec"><span class="l">MIME Type</span><span class="v">{{mime_type}}</span></div>
+      <div class="spec"><span class="l">Format Container</span><span class="v">{{file_ext}}</span></div>
+      <div class="spec"><span class="l">Tracks</span><span class="v" id="trackInfo">…</span></div>
+      <div class="spec"><span class="l">RAM Buffer Cap</span><span class="v" id="memInfo">…</span></div>
+      <div class="spec"><span class="l">Stream Protocol</span><span class="v">HTTP/1.1 Chunked Byte-Range (206)</span></div>
+    </div>
+
+    <div class="kbar">
+      <span><span class="kbd">Space</span> Play/Pause</span>
+      <span><span class="kbd">←</span> <span class="kbd">→</span> ±10s</span>
+      <span><span class="kbd">↑</span> <span class="kbd">↓</span> Volume</span>
+      <span><span class="kbd">F</span> Fullscreen</span>
+      <span><span class="kbd">M</span> Mute</span>
+    </div>
+  </section>
 </main>
-<footer>
+
+<footer class="glass">
   <div class="fb">FILE ² LINK STREAM SERVICE</div>
-  <p style="margin:0">© <span id="year"></span> File Stream Bot™. High-performance MTProto multi-client cloud streamer.</p>
+  <p>© <span id="year"></span> File Stream Bot™. High-performance MTProto multi-client cloud streamer.</p>
   <div style="margin-top:8px">Developer: <a class="dev" href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-code"></i> Goutham Josh</a> (<a class="dev" href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer">@GouthamSER</a>)</div>
   <div class="fl">
     <a href="https://t.me/wudixh15" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Updates</a>
@@ -113,7 +281,8 @@
     <a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github-alt"></i> @GouthamSER</a>
   </div>
 </footer>
-<div class="toast" id="toast"></div>
+
+<div class="toast" id="toast"><i class="fa-solid fa-check-circle" style="color:var(--green)"></i><span id="toastMsg"></span></div>
 
 <script>
 (function () {
@@ -121,17 +290,16 @@
   var FILE_URL = {{ file_url|tojson }};
   var CDN = {{ movi_cdn|tojson }};
   var SRI = {{ movi_sri|tojson }};
-  var IS_AUDIO = {{ 'true' if (is_audio and not is_video) else 'false' }};
   var KEY = {{ file_unique_id|tojson }};
 
   var $ = function (id) { return document.getElementById(id); };
-  var banner = $('banner'), el = null, loaded = false, disposed = false;
+  var banner = $('banner'), el = null, disposed = false;
 
   function say(msg, cls) { banner.className = 'banner show ' + (cls || ''); banner.innerHTML = msg; }
-  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); setTimeout(function () { e.classList.remove('show'); }, 1600); }
+  function toast(t) { $('toastMsg').textContent = t; var e = $('toast'); e.classList.add('show'); setTimeout(function () { e.classList.remove('show'); }, 1700); }
   function fallback(reason) {
     if (disposed) return;
-    say(reason + ' <a href="' + FILE_URL + '" download>Download the file</a> and play it in VLC / MX Player.', 'err');
+    say('<i class="fa-solid fa-triangle-exclamation"></i> ' + reason + ' <a href="' + FILE_URL + '" download>Download the file</a> or open it in VLC / MX Player below.');
   }
   function lang(t) { return (t && (t.language || t.lang)) || ''; }
   function label(t, i, kind) {
@@ -143,24 +311,57 @@
     return parts.length ? parts.join(' · ') : (kind === 'a' ? 'Audio ' : 'Subtitle ') + (i + 1);
   }
 
-  // Capability check: Movi needs WebCodecs + WASM.
+  /* ---------- External launchers (work even if Movi fails) ---------- */
+  function intentUrl(pkg) {
+    var u = FILE_URL.replace(/^https?:\/\//, '');
+    var scheme = FILE_URL.indexOf('https') === 0 ? 'https' : 'http';
+    return 'intent://' + u + '#Intent;scheme=' + scheme + ';package=' + pkg + ';type=video/*;end;';
+  }
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var launch = {
+    vlc: function () { return isAndroid ? intentUrl('org.videolan.vlc') : 'vlc://' + FILE_URL; },
+    mx: function () { return intentUrl('com.mxtech.videoplayer.ad'); },
+    nplayer: function () { return 'nplayer-' + FILE_URL; },
+    km: function () { return intentUrl('com.kmplayer'); },
+    pot: function () { return 'potplayer://' + FILE_URL; }
+  };
+  var names = { vlc: 'VLC', mx: 'MX Player', nplayer: 'nPlayer', km: 'KMPlayer', pot: 'PotPlayer' };
+  Array.prototype.forEach.call(document.querySelectorAll('.app[data-app]'), function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-app');
+      toast('Opening ' + names[k] + '…');
+      window.location.href = launch[k]();
+    });
+  });
+  function copy() {
+    (navigator.clipboard ? navigator.clipboard.writeText(FILE_URL) : Promise.reject()).then(
+      function () { toast('Link copied'); }, function () { toast('Copy failed'); });
+  }
+  $('copyBtn').addEventListener('click', copy);
+  $('netBtn').addEventListener('click', copy);
+  $('shareBtn').addEventListener('click', function () {
+    if (navigator.share) navigator.share({ title: document.title, url: FILE_URL }).catch(function () {});
+    else copy();
+  });
+
+  /* ---------- Movi requirements ---------- */
   if (typeof VideoDecoder === 'undefined' || typeof WebAssembly === 'undefined') {
     fallback('This browser lacks WebCodecs (need Chrome/Edge 94+, Safari 16.4+, Firefox 130+).');
     return;
   }
 
-  // Device-based RAM buffer (MB). Movi default cap is 250 MB — too big for phones/Heroku-fed low-RAM devices.
+  // Device-based RAM buffer (Movi default cap is 250 MB).
   var mem = navigator.deviceMemory || 0;
   var mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
   var bufMB = mem ? (mem <= 2 ? 32 : mem <= 4 ? 64 : 128) : (mobile ? 48 : 64);
-  var bufBytes = bufMB * 1024 * 1024;
+  $('memInfo').textContent = bufMB + ' MB';
 
   function build() {
     el = document.createElement('movi-player');
     el.setAttribute('src', FILE_URL);
     el.setAttribute('controls', '');
     el.setAttribute('preload', 'metadata');
-    el.setAttribute('buffersize', String(bufBytes));
+    el.setAttribute('buffersize', String(bufMB * 1024 * 1024));
     el.setAttribute('subtitlepicker', '');
     el.setAttribute('resume', '');
     el.setAttribute('resumekey', 'f2l-' + KEY);
@@ -173,7 +374,12 @@
     el.addEventListener('audiotrackchange', syncSel);
     el.addEventListener('subtitletrackchange', syncSel);
     el.addEventListener('error', function () { fallback('Advanced player failed on this file.'); });
-    el.addEventListener('nativefallback', function () { say('Using browser-native playback (tracks switching limited).', 'warn'); });
+    el.addEventListener('nativefallback', function () { say('Using browser-native playback (track switching limited).', 'warn'); });
+
+    var disc = $('disc');
+    el.addEventListener('play', function () { disc.classList.add('on'); });
+    el.addEventListener('pause', function () { disc.classList.remove('on'); });
+    el.addEventListener('ended', function () { disc.classList.remove('on'); });
   }
 
   function player() { return el && el.player; }
@@ -181,20 +387,21 @@
   function refresh() {
     var p = player();
     if (!p) return;
-    loaded = true;
     var a = [], s = [];
     try { a = p.getAudioTracks() || []; s = p.getSubtitleTracks() || []; } catch (e) {}
     var as = $('audioSel'), ss = $('subSel');
     as.innerHTML = ''; ss.innerHTML = '';
-    a.forEach(function (t, i) { var o = new Option(label(t, i, 'a'), t.id); as.add(o); });
-    var off = new Option('Off', ''); ss.add(off);
-    s.forEach(function (t, i) { ss.add(new Option(label(t, i, 's'), t.id)); });
+    a.forEach(function (t, i) { as.add(new Option(label(t, i, 'a'), t.id)); });
     as.disabled = a.length < 2;
     if (!a.length) as.add(new Option('No audio track', ''));
-    ss.disabled = !s.length;
-    if (!s.length) { ss.innerHTML = ''; ss.add(new Option('No subtitle tracks', '')); }
-    $('trackInfo').innerHTML = '<b>Tracks:</b> ' + a.length + ' audio · ' + s.length + ' subtitle';
-    $('memInfo').innerHTML = '<b>RAM buffer cap:</b> ' + bufMB + ' MB';
+    if (s.length) {
+      ss.add(new Option('Off', ''));
+      s.forEach(function (t, i) { ss.add(new Option(label(t, i, 's'), t.id)); });
+      ss.disabled = false;
+    } else {
+      ss.add(new Option('No subtitle tracks', '')); ss.disabled = true;
+    }
+    $('trackInfo').textContent = a.length + ' audio · ' + s.length + ' subtitle';
     syncSel();
   }
 
@@ -205,7 +412,7 @@
       var at = p.trackManager && p.trackManager.getActiveAudioTrack && p.trackManager.getActiveAudioTrack();
       if (at && at.id != null) $('audioSel').value = String(at.id);
       var st = p.trackManager && p.trackManager.getActiveSubtitleTrack && p.trackManager.getActiveSubtitleTrack();
-      $('subSel').value = st && st.id != null ? String(st.id) : '';
+      if (!$('subSel').disabled) $('subSel').value = st && st.id != null ? String(st.id) : '';
     } catch (e) {}
   }
 
@@ -229,39 +436,6 @@
   $('dMinus').addEventListener('click', function () { setDelay(parseFloat($('delay').value) - 0.5); });
   $('dPlus').addEventListener('click', function () { setDelay(parseFloat($('delay').value) + 0.5); });
 
-  $('copyBtn').addEventListener('click', function () {
-    (navigator.clipboard ? navigator.clipboard.writeText(FILE_URL) : Promise.reject()).then(
-      function () { toast('Link copied'); }, function () { toast('Copy failed'); });
-  });
-
-
-  // External player launchers
-  function intentUrl(pkg) {
-    var u = FILE_URL.replace(/^https?:\/\//, '');
-    var scheme = FILE_URL.indexOf('https') === 0 ? 'https' : 'http';
-    return 'intent://' + u + '#Intent;scheme=' + scheme + ';package=' + pkg + ';type=video/*;end;';
-  }
-  var isAndroid = /Android/i.test(navigator.userAgent);
-  var launch = {
-    vlc: function () { return isAndroid ? intentUrl('org.videolan.vlc') : 'vlc://' + FILE_URL; },
-    mx: function () { return intentUrl('com.mxtech.videoplayer.ad'); },
-    nplayer: function () { return 'nplayer-' + FILE_URL; },
-    km: function () { return intentUrl('com.kmplayer'); },
-    pot: function () { return 'potplayer://' + FILE_URL; }
-  };
-  var names = { vlc: 'VLC', mx: 'MX Player', nplayer: 'nPlayer', km: 'KMPlayer', pot: 'PotPlayer' };
-  Array.prototype.forEach.call(document.querySelectorAll('.app[data-app]'), function (b) {
-    b.addEventListener('click', function () {
-      var k = b.getAttribute('data-app');
-      toast('Opening ' + names[k] + '…');
-      window.location.href = launch[k]();
-    });
-  });
-  $('shareBtn').addEventListener('click', function () {
-    if (navigator.share) navigator.share({ title: document.title, url: FILE_URL }).catch(function () {});
-    else $('copyBtn').click();
-  });
-
   // Free decoders, WASM memory and open streams when leaving.
   function cleanup() {
     if (disposed) return; disposed = true;
@@ -270,7 +444,7 @@
   }
   window.addEventListener('pagehide', cleanup);
 
-  // Load library (pinned + SRI). Timeout → fallback to Plyr page.
+  // Load library (pinned + SRI). Timeout -> error banner with download/launcher fallback.
   var s = document.createElement('script');
   s.type = 'module'; s.src = CDN; s.crossOrigin = 'anonymous';
   if (SRI) s.integrity = SRI;
