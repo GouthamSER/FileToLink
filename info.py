@@ -70,3 +70,7 @@ ISGD = environ.get('ISGD', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK = environ.get('SHORTLINK', 'False').strip().lower() in ('true', '1', 'yes')
 SHORTLINK_URL = environ.get('SHORTLINK_URL', '')
 SHORTLINK_API = environ.get('SHORTLINK_API', '')
+
+# Movi Player (/movi/ page). Pinned version + SRI. Set MOVI_SRI="" to disable integrity check.
+MOVI_SRC = environ.get('MOVI_SRC', 'https://cdn.jsdelivr.net/npm/movi-player@0.4.1/dist/element.js')
+MOVI_SRI = environ.get('MOVI_SRI', 'sha384-MiadXwbnxmwu8zgutuLZHSnaqFF26QjXlnmi3y5MvCedBkHThmEs5+F+ZeRx9m+y')

@@ -59,12 +59,15 @@ async def render_page(id, secure_hash, page="watch"):
         f"watch/{id}/{urllib.parse.quote(raw_name, safe='')}?hash={secure_hash}",
     )
 
+    movi_src = urllib.parse.urljoin(
+        URL,
+        f"movi/{id}/{urllib.parse.quote(raw_name, safe='')}?hash={secure_hash}",
+    )
+
     if page == "dl":
         template_file = "lib/template/dl.html"
-    elif page == "watch":
-        template_file = "lib/template/watch.html" if (is_video or is_audio) else "lib/template/dl.html"
-    else:
-        template_file = "lib/template/watch.html" if (is_video or is_audio) else "lib/template/dl.html"
+    else:  # watch / stream / movi -> Movi Player
+        template_file = "lib/template/movi.html" if (is_video or is_audio) else "lib/template/dl.html"
 
     file_size = humanbytes(file_data.file_size)
     template = _get_template(template_file)
@@ -75,6 +78,9 @@ async def render_page(id, secure_hash, page="watch"):
         file_name_raw=raw_name,
         file_url=src,
         watch_url=watch_src,
+        movi_url=movi_src,
+        movi_cdn=MOVI_SRC,
+        movi_sri=MOVI_SRI,
         dl_url=src,
         file_size=file_size,
         file_unique_id=file_data.unique_id,

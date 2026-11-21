@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{file_name}} · Advanced Player</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{--bg:#07070b;--surface:#0e0e16;--elev:#151522;--line:rgba(255,255,255,.08);--text:#f8fafc;--muted:#94a3b8;--purple:#8b5cf6;--cyan:#06b6d4;--rose:#f43f5e;--green:#10b981}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{color:var(--text);text-decoration:none;font-weight:700;letter-spacing:.5px}
+  .brand b{color:var(--purple)}
+  .nav{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--elev);color:var(--text);text-decoration:none;font-size:13px;cursor:pointer}
+  .pill:hover{border-color:var(--purple)}
+  .pill.primary{background:var(--purple);border-color:var(--purple)}
+  main{max-width:1100px;margin:0 auto;padding:16px}
+  h1{font-size:18px;margin:4px 0 12px;word-break:break-word}
+  .stage{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;aspect-ratio:16/9;position:relative}
+  movi-player{display:block;width:100%;height:100%}
+  .audio-only .stage{aspect-ratio:auto;height:180px}
+  .banner{display:none;margin:10px 0;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.4;border:1px solid var(--line);background:var(--elev)}
+  .banner.show{display:block}
+  .banner.err{border-color:var(--rose)}
+  .banner.warn{border-color:#f59e0b}
+  .banner a{color:var(--cyan)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .card h2{margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  select,input[type=range]{width:100%;background:var(--elev);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px}
+  input[type=range]{padding:0}
+  .row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .row span{font-size:12px;color:var(--muted);min-width:64px;text-align:right}
+  .btn{background:var(--elev);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+  .btn:hover{border-color:var(--purple)}
+  .meta{font-size:13px;color:var(--muted);line-height:1.6}
+  .meta b{color:var(--text)}
+  .apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .app{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--elev);color:var(--text);cursor:pointer;font-size:13px;text-align:left;font-family:inherit}
+  .app:hover{border-color:var(--purple)}
+  .app i{width:18px;text-align:center;color:var(--cyan)}
+  .wide{grid-column:1/-1}
+  footer{border-top:1px solid var(--line);padding:26px 16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface);margin-top:24px}
+  .fb{font-weight:800;color:#fff;margin-bottom:6px}
+  footer a{color:var(--muted);text-decoration:none}
+  footer a:hover{color:var(--purple)}
+  footer .dev{color:#fff;font-weight:600}
+  .fl{display:flex;justify-content:center;flex-wrap:wrap;gap:18px;margin-top:12px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--elev);border:1px solid var(--line);padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body class="{% if is_audio and not is_video %}audio-only{% endif %}">
+<header>
+  <a class="brand" href="https://t.me/wudixh12" target="_blank" rel="noopener">FILE ² <b>LINK</b></a>
+  <div class="nav">
+    <a class="pill" href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> GitHub</a>
+    <a class="pill" href="https://t.me/wudixh12" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Channel</a>
+    <a class="pill primary" href="{{dl_url}}" download><i class="fa-solid fa-download"></i> Download</a>
+  </div>
+</header>
+
+<main>
+  <h1>{{file_name}}</h1>
+
+  <div id="banner" class="banner"></div>
+
+  <div class="stage" id="stage"></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2><i class="fa-solid fa-volume-high"></i> Audio track</h2>
+      <select id="audioSel" disabled><option>Loading…</option></select>
+    </div>
+    <div class="card">
+      <h2><i class="fa-regular fa-closed-captioning"></i> Subtitles</h2>
+      <select id="subSel" disabled><option>Loading…</option></select>
+      <div class="row"><button class="btn" id="dMinus">−0.5s</button><input type="range" id="delay" min="-10" max="10" step="0.1" value="0"><button class="btn" id="dPlus">+0.5s</button><span id="dVal">0.0s</span></div>
+    </div>
+    <div class="card">
+      <h2><i class="fa-solid fa-circle-info"></i> File</h2>
+      <div class="meta">
+        <div><b>Size:</b> {{file_size}}</div>
+        <div><b>Type:</b> {{file_ext}} · {{mime_type}}</div>
+        <div id="trackInfo"><b>Tracks:</b> …</div>
+        <div id="memInfo"></div>
+      </div>
+      <div class="row"><button class="btn" id="copyBtn"><i class="fa-regular fa-copy"></i> Copy link</button></div>
+    </div>
+  </div>
+
+  <div class="card wide" style="margin-top:12px">
+    <h2><i class="fa-solid fa-up-right-from-square"></i> Open in app</h2>
+    <div class="apps">
+      <button class="app" data-app="vlc"><i class="fa-solid fa-traffic-cone"></i> VLC</button>
+      <button class="app" data-app="mx"><i class="fa-solid fa-play"></i> MX Player</button>
+      <button class="app" data-app="nplayer"><i class="fa-solid fa-circle-play"></i> nPlayer</button>
+      <button class="app" data-app="km"><i class="fa-solid fa-film"></i> KMPlayer</button>
+      <button class="app" data-app="pot"><i class="fa-solid fa-desktop"></i> PotPlayer</button>
+      <button class="app" id="shareBtn"><i class="fa-solid fa-share-nodes"></i> Share</button>
+    </div>
+  </div>
+</main>
+<footer>
+  <div class="fb">FILE ² LINK STREAM SERVICE</div>
+  <p style="margin:0">© <span id="year"></span> File Stream Bot™. High-performance MTProto multi-client cloud streamer.</p>
+  <div style="margin-top:8px">Developer: <a class="dev" href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-code"></i> Goutham Josh</a> (<a class="dev" href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer">@GouthamSER</a>)</div>
+  <div class="fl">
+    <a href="https://t.me/wudixh15" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-telegram"></i> Updates</a>
+    <a href="https://github.com/GouthamSER/FileToLink" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> GitHub Repo</a>
+    <a href="https://github.com/GouthamSER" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github-alt"></i> @GouthamSER</a>
+  </div>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  var yr = document.getElementById('year'); if (yr) yr.textContent = new Date().getFullYear();
+  var FILE_URL = {{ file_url|tojson }};
+  var CDN = {{ movi_cdn|tojson }};
+  var SRI = {{ movi_sri|tojson }};
+  var IS_AUDIO = {{ 'true' if (is_audio and not is_video) else 'false' }};
+  var KEY = {{ file_unique_id|tojson }};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var banner = $('banner'), el = null, loaded = false, disposed = false;
+
+  function say(msg, cls) { banner.className = 'banner show ' + (cls || ''); banner.innerHTML = msg; }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); setTimeout(function () { e.classList.remove('show'); }, 1600); }
+  function fallback(reason) {
+    if (disposed) return;
+    say(reason + ' <a href="' + FILE_URL + '" download>Download the file</a> and play it in VLC / MX Player.', 'err');
+  }
+  function lang(t) { return (t && (t.language || t.lang)) || ''; }
+  function label(t, i, kind) {
+    var parts = [];
+    if (t.label || t.title || t.name) parts.push(t.label || t.title || t.name);
+    if (lang(t) && lang(t) !== 'und') parts.push(lang(t).toUpperCase());
+    if (t.codec) parts.push(t.codec);
+    if (kind === 'a' && t.channels) parts.push(t.channels + 'ch');
+    return parts.length ? parts.join(' · ') : (kind === 'a' ? 'Audio ' : 'Subtitle ') + (i + 1);
+  }
+
+  // Capability check: Movi needs WebCodecs + WASM.
+  if (typeof VideoDecoder === 'undefined' || typeof WebAssembly === 'undefined') {
+    fallback('This browser lacks WebCodecs (need Chrome/Edge 94+, Safari 16.4+, Firefox 130+).');
+    return;
+  }
+
+  // Device-based RAM buffer (MB). Movi default cap is 250 MB — too big for phones/Heroku-fed low-RAM devices.
+  var mem = navigator.deviceMemory || 0;
+  var mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  var bufMB = mem ? (mem <= 2 ? 32 : mem <= 4 ? 64 : 128) : (mobile ? 48 : 64);
+  var bufBytes = bufMB * 1024 * 1024;
+
+  function build() {
+    el = document.createElement('movi-player');
+    el.setAttribute('src', FILE_URL);
+    el.setAttribute('controls', '');
+    el.setAttribute('preload', 'metadata');
+    el.setAttribute('buffersize', String(bufBytes));
+    el.setAttribute('subtitlepicker', '');
+    el.setAttribute('resume', '');
+    el.setAttribute('resumekey', 'f2l-' + KEY);
+    el.setAttribute('theme', 'dark');
+    el.setAttribute('smoothwarning', '');
+    $('stage').appendChild(el);
+
+    el.addEventListener('loadeddata', refresh);
+    el.addEventListener('trackschange', refresh);
+    el.addEventListener('audiotrackchange', syncSel);
+    el.addEventListener('subtitletrackchange', syncSel);
+    el.addEventListener('error', function () { fallback('Advanced player failed on this file.'); });
+    el.addEventListener('nativefallback', function () { say('Using browser-native playback (tracks switching limited).', 'warn'); });
+  }
+
+  function player() { return el && el.player; }
+
+  function refresh() {
+    var p = player();
+    if (!p) return;
+    loaded = true;
+    var a = [], s = [];
+    try { a = p.getAudioTracks() || []; s = p.getSubtitleTracks() || []; } catch (e) {}
+    var as = $('audioSel'), ss = $('subSel');
+    as.innerHTML = ''; ss.innerHTML = '';
+    a.forEach(function (t, i) { var o = new Option(label(t, i, 'a'), t.id); as.add(o); });
+    var off = new Option('Off', ''); ss.add(off);
+    s.forEach(function (t, i) { ss.add(new Option(label(t, i, 's'), t.id)); });
+    as.disabled = a.length < 2;
+    if (!a.length) as.add(new Option('No audio track', ''));
+    ss.disabled = !s.length;
+    if (!s.length) { ss.innerHTML = ''; ss.add(new Option('No subtitle tracks', '')); }
+    $('trackInfo').innerHTML = '<b>Tracks:</b> ' + a.length + ' audio · ' + s.length + ' subtitle';
+    $('memInfo').innerHTML = '<b>RAM buffer cap:</b> ' + bufMB + ' MB';
+    syncSel();
+  }
+
+  function syncSel() {
+    var p = player();
+    if (!p) return;
+    try {
+      var at = p.trackManager && p.trackManager.getActiveAudioTrack && p.trackManager.getActiveAudioTrack();
+      if (at && at.id != null) $('audioSel').value = String(at.id);
+      var st = p.trackManager && p.trackManager.getActiveSubtitleTrack && p.trackManager.getActiveSubtitleTrack();
+      $('subSel').value = st && st.id != null ? String(st.id) : '';
+    } catch (e) {}
+  }
+
+  $('audioSel').addEventListener('change', function () {
+    var p = player(); if (!p) return;
+    try { p.selectAudioTrack(Number(this.value)); toast('Audio switched'); }
+    catch (e) { toast('Audio switch failed'); }
+  });
+  $('subSel').addEventListener('change', async function () {
+    var p = player(); if (!p) return;
+    try { await p.selectSubtitleTrack(this.value === '' ? null : Number(this.value)); toast(this.value === '' ? 'Subtitles off' : 'Subtitles on'); }
+    catch (e) { toast('Subtitle switch failed'); }
+  });
+
+  function setDelay(v) {
+    v = Math.max(-10, Math.min(10, Math.round(v * 10) / 10));
+    $('delay').value = v; $('dVal').textContent = v.toFixed(1) + 's';
+    if (el) try { el.subtitleDelay = v; } catch (e) {}
+  }
+  $('delay').addEventListener('input', function () { setDelay(parseFloat(this.value)); });
+  $('dMinus').addEventListener('click', function () { setDelay(parseFloat($('delay').value) - 0.5); });
+  $('dPlus').addEventListener('click', function () { setDelay(parseFloat($('delay').value) + 0.5); });
+
+  $('copyBtn').addEventListener('click', function () {
+    (navigator.clipboard ? navigator.clipboard.writeText(FILE_URL) : Promise.reject()).then(
+      function () { toast('Link copied'); }, function () { toast('Copy failed'); });
+  });
+
+
+  // External player launchers
+  function intentUrl(pkg) {
+    var u = FILE_URL.replace(/^https?:\/\//, '');
+    var scheme = FILE_URL.indexOf('https') === 0 ? 'https' : 'http';
+    return 'intent://' + u + '#Intent;scheme=' + scheme + ';package=' + pkg + ';type=video/*;end;';
+  }
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var launch = {
+    vlc: function () { return isAndroid ? intentUrl('org.videolan.vlc') : 'vlc://' + FILE_URL; },
+    mx: function () { return intentUrl('com.mxtech.videoplayer.ad'); },
+    nplayer: function () { return 'nplayer-' + FILE_URL; },
+    km: function () { return intentUrl('com.kmplayer'); },
+    pot: function () { return 'potplayer://' + FILE_URL; }
+  };
+  var names = { vlc: 'VLC', mx: 'MX Player', nplayer: 'nPlayer', km: 'KMPlayer', pot: 'PotPlayer' };
+  Array.prototype.forEach.call(document.querySelectorAll('.app[data-app]'), function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-app');
+      toast('Opening ' + names[k] + '…');
+      window.location.href = launch[k]();
+    });
+  });
+  $('shareBtn').addEventListener('click', function () {
+    if (navigator.share) navigator.share({ title: document.title, url: FILE_URL }).catch(function () {});
+    else $('copyBtn').click();
+  });
+
+  // Free decoders, WASM memory and open streams when leaving.
+  function cleanup() {
+    if (disposed) return; disposed = true;
+    try { if (el && el.player && el.player.dispose) el.player.dispose(); } catch (e) {}
+    try { if (el && el.remove) el.remove(); } catch (e) {}
+  }
+  window.addEventListener('pagehide', cleanup);
+
+  // Load library (pinned + SRI). Timeout → fallback to Plyr page.
+  var s = document.createElement('script');
+  s.type = 'module'; s.src = CDN; s.crossOrigin = 'anonymous';
+  if (SRI) s.integrity = SRI;
+  var timer = setTimeout(function () {
+    if (!window.customElements.get('movi-player')) fallback('Player library timed out (≈12 MB first load).');
+  }, 25000);
+  s.onerror = function () { clearTimeout(timer); fallback('Player library failed to load.'); };
+  s.onload = function () {
+    clearTimeout(timer);
+    window.customElements.whenDefined('movi-player').then(function () { if (!disposed) build(); });
+  };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

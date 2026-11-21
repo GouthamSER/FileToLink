@@ -57,6 +57,7 @@ async def root_route_handler(request: web.Request):
 
 @routes.get(r"/watch/{path:.+}", allow_head=True)
 @routes.get(r"/stream/{path:.+}", allow_head=True)
+@routes.get(r"/movi/{path:.+}", allow_head=True)
 async def stream_handler(request: web.Request):
     return await _render_page_route(request, page="watch")
 

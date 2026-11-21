@@ -38,6 +38,12 @@
 - **Smart Codec Fallback Guard**: Automatically alerts users if their browser lacks native decoders for complex MKV/HEVC/AC3 codecs and offers a one-tap jump into VLC/MX Player.
 - **Keyboard Shortcuts**: Desktop control with `Space` (Play/Pause), `←/→` (Seek ±10s), `↑/↓` (Volume), `F` (Fullscreen), and `M` (Mute).
 
+### 🎞️ Movi Player v0.4.1 (`/watch/{id}`, `/stream/{id}`, `/movi/{id}` — all same page)
+- Embedded **audio track** and **subtitle track** switching (MKV/MP4), subtitle delay, resume position.
+- Pinned CDN version + SRI hash. Override with `MOVI_SRC` / `MOVI_SRI` (empty `MOVI_SRI` disables the check).
+- RAM buffer auto-sized by device (32–128 MB). If WebCodecs/library unavailable, shows error + download link.
+- Not decoded: DTS / TrueHD audio. HEVC/AV1 without hardware decode is CPU heavy.
+
 ### 🚀 Direct Download Hub (`/{id}`)
 - **Gigabit Chunked Streaming**: Full HTTP/1.1 Range header support (`206 Partial Content`) for multi-threaded download accelerators (IDM, 1DM, ADM, FDM, aria2).
 - **Format-Aware Visual Badging**: Custom format icons and colored badges for video, audio, archives (`.zip`, `.rar`, `.7z`), software, and documents.
@@ -86,7 +92,7 @@ flowchart TD
 |---|---|
 | **Koyeb** *(Recommended)* | [![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/GouthamSER/FileToLink&branch=main&builder=dockerfile) |
 | **Heroku** | [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/GouthamSER/FileToLink) |
-| **Heroku (Colab, container stack)** | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://drive.google.com/file/d/1xlRGDJFAzkR0VWS_Cl6ego0qPncPlg1W/view?usp=sharing) — enter Heroku email + API key + env vars, notebook builds & deploys via `heroku.yml` |
+| **Heroku (Colab, container stack)** | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1U_bWcaWD8pdRqFknp72yA1z_w28g5S5k?usp=sharing) — open it, *File → Save a copy in Drive*, enter your own Heroku email + API key + env vars. It builds & deploys via `heroku.yml`, then auto-wipes your secrets from the Colab session. Source: [`colab/Deploy_to_Heroku.ipynb`](colab/Deploy_to_Heroku.ipynb) |
 | **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/GouthamSER/FileToLink) |
 
 ---
@@ -187,7 +193,7 @@ FileToLink/
 │   ├── server/
 │   │   └── exceptions.py      # Custom exceptions (InvalidHash, FIleNotFound)
 │   ├── template/
-│   │   ├── watch.html         # Reimagined Cyberpunk Glassmorphic Video/Audio Player
+│   │   ├── movi.html          # Movi Player video/audio page (audio+subtitle tracks)
 │   │   ├── dl.html            # High-Speed Download Portal & acceleration guide
 │   │   └── home.html          # Next-Gen Telegram Stream & Cloud Hub Dashboard
 │   └── util/
