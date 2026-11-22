@@ -186,7 +186,7 @@
 <div class="liquid"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 
 <header class="glass">
-  <a class="brand" href="https://t.me/wudixh12" target="_blank" rel="noopener">
+  <a class="brand" href="https://t.me/wudixh15" target="_blank" rel="noopener">
     <div class="brand-icon"><i class="fa-solid fa-play"></i></div>
     <span>FILE ² <b>LINK</b></span>
   </a>
@@ -353,7 +353,7 @@
   // Device-based RAM buffer (Movi default cap is 250 MB).
   var mem = navigator.deviceMemory || 0;
   var mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-  var bufMB = mem ? (mem <= 2 ? 32 : mem <= 4 ? 64 : 128) : (mobile ? 48 : 64);
+  var bufMB = mem ? (mem <= 2 ? 16 : mem <= 4 ? 32 : 64) : (mobile ? 24 : 32);
   $('memInfo').textContent = bufMB + ' MB';
 
   function build() {
