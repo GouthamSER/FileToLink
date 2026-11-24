@@ -353,7 +353,7 @@
   // Device-based RAM buffer (Movi default cap is 250 MB).
   var mem = navigator.deviceMemory || 0;
   var mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-  var bufMB = mem ? (mem <= 2 ? 16 : mem <= 4 ? 32 : 64) : (mobile ? 24 : 32);
+  var bufMB = mem ? (mem <= 2 ? 32 : mem <= 4 ? 64 : 128) : (mobile ? 48 : 64);
   $('memInfo').textContent = bufMB + ' MB';
 
   function build() {
