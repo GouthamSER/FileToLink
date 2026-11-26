@@ -23,27 +23,22 @@
 
 ---
 
+> **dzgram test build**: uses `dzgram[fast]` instead of `wzgram[fast]` (requirements.txt) and `DZGRAM_MAX_CONCURRENT_TRANSMISSIONS=16` (Dockerfile).
+
 ## 🌟 Highlights & Key Features
 
-🚀 File 2 Link v1.4 — What's New
-
-🎬 New player (Movi Player)
-• Switch audio tracks (multi-language MKV)
-• Subtitles on/off, with delay adjust
-• Plays more formats (MKV, HEVC, AC3)
-• Resumes where you left off
-• Open in VLC / MX Player / nPlayer / KMPlayer / PotPlayer
-
-✨ New liquid-glass page design
-
-⚡ Faster & more stable
-• Fewer crashes with many users at once
-• Smoother streaming, no more stalls under load
-
-📱 Tip: Chrome / Edge / Safari 16.4+ recommended.
-For 4K or DTS audio, use "Open in VLC".
-
-Dev: @GouthamSER
+### 🎬 Universal Streaming Web Player (`/watch/{id}`)
+- **Universal Format Engine**: Native support for all major containers: `.mkv`, `.mp4`, `.webm`, `.avi`, `.mov`, `.flv`, `.m4v`, `.ts`, and `.3gp`.
+- **Dedicated Music & Audio Mode**: Audio files (`.mp3`, `.flac`, `.wav`, `.ogg`, `.m4a`, `.aac`) automatically switch to an ambient vinyl disc visualizer player.
+- **Cyberpunk Glassmorphism UI**: Ultra-clean obsidian theme (`#07070b`) with ambient neon glows, frosted glass cards, and Google Fonts typography (`Plus Jakarta Sans` & `JetBrains Mono`).
+- **One-Click External App Launchers**: Deep intent launchers for:
+  - 🚗 **VLC Media Player** (Universal Android Intent & iOS `vlc://` scheme)
+  - ⚡ **MX Player** (Android Intent)
+  - 🍎 **nPlayer** (iOS & macOS deep link)
+  - 🎞️ **KMPlayer** & 🖥️ **PotPlayer** (Windows PC)
+  - 🌐 **Raw Network Stream URL Copy** for Kodi, Infuse, and IINA
+- **Smart Codec Fallback Guard**: Automatically alerts users if their browser lacks native decoders for complex MKV/HEVC/AC3 codecs and offers a one-tap jump into VLC/MX Player.
+- **Keyboard Shortcuts**: Desktop control with `Space` (Play/Pause), `←/→` (Seek ±10s), `↑/↓` (Volume), `F` (Fullscreen), and `M` (Mute).
 
 ### 🎞️ Movi Player v0.4.1 (`/watch/{id}`, `/stream/{id}`, `/movi/{id}` — all same page)
 - Embedded **audio track** and **subtitle track** switching (MKV/MP4), subtitle delay, resume position.
