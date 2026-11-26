@@ -6,9 +6,10 @@
 
 **High-Performance Telegram Cloud Streamer & Instant Direct Download Engine**
 
-[![Version](https://img.shields.io/badge/Version-v1.2.0-8B5CF6?style=for-the-badge&logo=git&logoColor=white)](#-changelog)
+[![Version](https://img.shields.io/badge/Version-v1.5.0-8B5CF6?style=for-the-badge&logo=git&logoColor=white)](#-changelog)
 [![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![Telegram Engine](https://img.shields.io/badge/Telegram-MTProto%20v2-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/wudixh15)
+[![Telegram Library](https://img.shields.io/badge/Library-dzgram%20%5Bfast%5D-F59E0B?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/dzgram/)
 [![Async Server](https://img.shields.io/badge/Server-aiohttp%20Speedups-FF6B6B?style=for-the-badge&logo=aiohttp&logoColor=white)](https://aiohttp.readthedocs.io)
 [![Database](https://img.shields.io/badge/Database-MongoDB%20Async-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com)
 [![Docker](https://img.shields.io/badge/Container-Docker%20Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
@@ -23,28 +24,20 @@
 
 ---
 
-> **dzgram test build**: uses `dzgram[fast]` instead of `wzgram[fast]` (requirements.txt) and `DZGRAM_MAX_CONCURRENT_TRANSMISSIONS=16` (Dockerfile).
-
 ## 🌟 Highlights & Key Features
 
-### 🎬 Universal Streaming Web Player (`/watch/{id}`)
-- **Universal Format Engine**: Native support for all major containers: `.mkv`, `.mp4`, `.webm`, `.avi`, `.mov`, `.flv`, `.m4v`, `.ts`, and `.3gp`.
-- **Dedicated Music & Audio Mode**: Audio files (`.mp3`, `.flac`, `.wav`, `.ogg`, `.m4a`, `.aac`) automatically switch to an ambient vinyl disc visualizer player.
-- **Cyberpunk Glassmorphism UI**: Ultra-clean obsidian theme (`#07070b`) with ambient neon glows, frosted glass cards, and Google Fonts typography (`Plus Jakarta Sans` & `JetBrains Mono`).
-- **One-Click External App Launchers**: Deep intent launchers for:
-  - 🚗 **VLC Media Player** (Universal Android Intent & iOS `vlc://` scheme)
-  - ⚡ **MX Player** (Android Intent)
-  - 🍎 **nPlayer** (iOS & macOS deep link)
-  - 🎞️ **KMPlayer** & 🖥️ **PotPlayer** (Windows PC)
-  - 🌐 **Raw Network Stream URL Copy** for Kodi, Infuse, and IINA
-- **Smart Codec Fallback Guard**: Automatically alerts users if their browser lacks native decoders for complex MKV/HEVC/AC3 codecs and offers a one-tap jump into VLC/MX Player.
-- **Keyboard Shortcuts**: Desktop control with `Space` (Play/Pause), `←/→` (Seek ±10s), `↑/↓` (Volume), `F` (Fullscreen), and `M` (Mute).
-
-### 🎞️ Movi Player v0.4.1 (`/watch/{id}`, `/stream/{id}`, `/movi/{id}` — all same page)
-- Embedded **audio track** and **subtitle track** switching (MKV/MP4), subtitle delay, resume position.
-- Pinned CDN version + SRI hash. Override with `MOVI_SRC` / `MOVI_SRI` (empty `MOVI_SRI` disables the check).
-- RAM buffer auto-sized by device (32–128 MB). If WebCodecs/library unavailable, shows error + download link.
-- Not decoded: DTS / TrueHD audio. HEVC/AV1 without hardware decode is CPU heavy.
+### 🎞️ Movi Player Web Page (`/watch/{id}`, `/stream/{id}`, `/movi/{id}`)
+One liquid-glass player page for every video and audio file, powered by **Movi Player v0.4.1** (FFmpeg-WASM + WebCodecs).
+- **Audio track switching**: pick any embedded language / track in multi-audio MKV and MP4.
+- **Subtitle support**: embedded subtitle tracks, an *Off* option, and a **subtitle delay** slider (±10 s).
+- **Plays more formats**: `.mkv`, `.mp4`, `.webm`, `.avi`, `.mov`, `.flv`, `.m4v`, `.ts`, `.3gp` including HEVC / AC3 that normal browser players reject.
+- **Resume where you left off**: playback position is remembered per file.
+- **Liquid-glass UI**: animated gradient blobs, frosted-glass cards, `Plus Jakarta Sans` + `JetBrains Mono`.
+- **Audio mode**: music files (`.mp3`, `.flac`, `.wav`, `.ogg`, `.m4a`, `.aac`) get a spinning vinyl disc.
+- **One-click external apps**: VLC, MX Player, nPlayer, KMPlayer, PotPlayer, raw stream URL copy (Kodi / Infuse / IINA) and native Share.
+- **Safe by default**: pinned CDN version + SRI integrity hash (`MOVI_SRC` / `MOVI_SRI` to override; empty `MOVI_SRI` disables the check), RAM buffer auto-sized by device (32–128 MB), player disposed on page leave.
+- **Graceful fallback**: no WebCodecs or CDN blocked → clear error + download link, external-app buttons still work.
+- **Limits**: DTS / TrueHD audio is not decoded; HEVC / AV1 without hardware decode is CPU-heavy on weak phones. Use *Open in VLC* for 4K.
 
 ### 🚀 Direct Download Hub (`/{id}`)
 - **Gigabit Chunked Streaming**: Full HTTP/1.1 Range header support (`206 Partial Content`) for multi-threaded download accelerators (IDM, 1DM, ADM, FDM, aria2).
@@ -57,6 +50,8 @@
 - **Atomic Reservation Lock**: Zero-gap client selection prevents race conditions when download accelerators open 16–32 connections in parallel.
 - **Sliding-Window Chunk Prefetching**: Each stream keeps `CONCURRENT_FETCHES` Telegram requests always in flight, delivered strictly in order, so VLC/MX seeks and buffering stay smooth.
 - **Seek-Safe Streams**: Abandoned seeks are torn down instantly (no leaked load counters), `HEAD` probes cost zero Telegram traffic, and a stale file reference fails fast and self-heals.
+- **Stream Caps (anti-crash)**: `MAX_ACTIVE_STREAMS` (default 12) limits streams on the whole dyno and `MAX_STREAMS_PER_IP` (default 6) stops one download manager from taking every slot. Over the limit → `429` / `503` with `Retry-After`. `HEAD` probes are never counted.
+- **Low-RAM Streaming**: zero-copy `memoryview` chunks, small per-stream buffers, `MALLOC_ARENA_MAX=2` and 4 Pyrogram workers keep a 512 MB Heroku dyno away from R14.
 - **Resilient Retry Mechanism**: Automatic backoff retries for transient Telegram RPC errors (`-503 Timeout`, `FloodWait`, socket drops).
 - **All Media Types Supported**: Documents, videos, audios, photos, voice notes, video notes, and stickers.
 - **Permanent Link Revocation**: One-tap 🗑️ **Delete / Revoke** button with two-step confirmation window allows uploaders and admins to permanently remove files from storage.
@@ -147,6 +142,12 @@ docker run -d -p 8080:8080 --env-file .env --name file2link_app file2link
 | `SHORTLINK_URL` | Optional | Shortener base site URL (e.g. `api.shareus.io`, `gplinks.com`). |
 | `SHORTLINK_API` | Optional | Shortener API key. |
 | `ISGD` | Optional | Enable free `is.gd` shortener (`True` / `False`). |
+| `MAX_ACTIVE_STREAMS` | Optional | Max simultaneous HTTP streams on the whole server (default `12`). Lower it if you see R14 memory errors. |
+| `MAX_STREAMS_PER_IP` | Optional | Max simultaneous streams per user IP (default `6`). |
+| `STREAM_CONCURRENCY` / `STREAM_PREFETCH` | Optional | Telegram chunks fetched in parallel / prefetched per stream (defaults `3` / `2`). |
+| `CLIENT_MAX_FETCHES` | Optional | Max simultaneous Telegram fetches per bot client (default `8`). |
+| `DZGRAM_MAX_CONCURRENT_TRANSMISSIONS` | Optional | dzgram transfer concurrency per client. Set to `16` in the `Dockerfile` (library default is 100, which uses more RAM). |
+| `MOVI_SRC` / `MOVI_SRI` | Optional | Movi Player script URL and its SRI hash. Defaults to the pinned v0.4.1 build. |
 | `AUTO_RESTART` | Optional | Periodic graceful restart trigger (default: `True`, 4-hour interval; set `False` to avoid cutting live streams). |
 
 ---
@@ -172,7 +173,7 @@ docker run -d -p 8080:8080 --env-file .env --name file2link_app file2link
 > **Scaling Formula**: Each additional `MULTI_TOKEN` handles roughly 3–5 concurrent high-bitrate video streams before Telegram triggers rate limiting.
 > `Tokens Needed ≈ Target Peak Concurrent Streams / 4`
 
-- **Memory Consumption**: Each MTProto client consumes roughly 25–35 MB RAM. On a free 512 MB dyno/container, 5–8 clients run comfortably.
+- **Memory Consumption**: Each MTProto client consumes roughly 25–35 MB RAM (dzgram itself needs ~70 MB once at import). On a 512 MB dyno/container, 4–6 clients plus the stream caps run comfortably.
 - **Maximum Download Speed**: For desktop downloads, recommend **IDM** with 16 connections. For mobile downloads, recommend **1DM** or **ADM**.
 - **Live Health Status**: Visit `GET /` or `GET /?json=true` on your deployment URL anytime to view live uptime, active workload counts, and client distribution.
 
@@ -190,7 +191,7 @@ FileToLink/
 │   └── users_chats_db.py      # Async MongoDB layer: users + banned_users (cached) with fail-safe guards
 ├── lib/
 │   ├── bot/
-│   │   ├── __init__.py        # Primary Pyrogram client definition
+│   │   ├── __init__.py        # Primary dzgram (Pyrogram API) client definition
 │   │   └── clients.py         # Multi-client pool initialization & graceful stopper
 │   ├── server/
 │   │   └── exceptions.py      # Custom exceptions (InvalidHash, FIleNotFound)
@@ -217,10 +218,14 @@ FileToLink/
 
 ## 🧾 Changelog
 
-Current version code: **`v1.2.0`** (also exposed as `__version__` in `lib/__init__.py`).
+Current version code: **`v1.5.0`** (also exposed as `__version__` in `lib/__init__.py`).
 
 | Version | Changes |
 |---|---|
+| **v1.5.0** | 🔁 Telegram library switched to **`dzgram[fast]`** (Pyrogram-compatible fork, warpcrypto + uvloop) · `DZGRAM_MAX_CONCURRENT_TRANSMISSIONS=16` · README refresh |
+| **v1.4.0** | 🎞️ **Movi Player v0.4.1** page: audio-track + subtitle switching, subtitle delay, resume, external-app launchers · liquid-glass UI · pinned CDN + SRI · old Plyr watch page removed (`/watch`, `/stream`, `/movi` all use Movi) |
+| **v1.3.1** | `HEAD` requests exempt from stream caps · per-IP default raised to 6 |
+| **v1.3.0** | 🧯 Heroku R14 fix: global (`MAX_ACTIVE_STREAMS`) and per-IP (`MAX_STREAMS_PER_IP`) stream caps, smaller buffers, zero-copy chunks, `MALLOC_ARENA_MAX=2`, 4 workers · new `Script.py` messages · Colab Heroku deploy notebook with auto secret wipe |
 | **v1.2.0** | 🚫 Ban system (`/ban`, `/unban`, `/banlist`, MongoDB `banned_users`, NSFW notice + admin contact) · 🎬 Seek/buffering fixes: leaked stream cleanup, sliding-window prefetch, HEAD handled without Telegram fetch, fail-fast on expired file references, no bot restart on a single bad chunk · Removed duplicate Telegram call per watch page · README refresh |
 | **v1.1** | Multi-client load balancing, revoke button, graceful SIGTERM shutdown, URL sanitizer |
 
