@@ -73,20 +73,32 @@ async def download_direct_handler(request: web.Request):
     return await _download_route(request)
 
 
+_LEGACY_PATH = re.compile(r"^([a-zA-Z0-9_-]{6})(\d+)$")
+
+
+def _parse_path(request: web.Request):
+    """-> (message_id, secure_hash).
+
+    New links: /{id}?hash=XXXXXX or /{id}/{name}?hash=XXXXXX.
+    Legacy links: /{hash6}{id} (no ?hash=). The legacy pattern is tried ONLY when
+    there is no ?hash=, otherwise a 7-digit message id (>= 1,000,000) such as
+    "1234567" was split into hash "123456" + id "7" and every link broke.
+    """
+    path = request.match_info["path"]
+    q_hash = request.rel_url.query.get("hash")
+    if not q_hash:
+        m = _LEGACY_PATH.search(path)
+        if m:
+            return int(m.group(2)), m.group(1)
+    m = re.search(r"(\d+)(?:/.*)?", path)
+    if not m:
+        raise web.HTTPBadRequest(text="Invalid file path")
+    return int(m.group(1)), q_hash
+
+
 async def _render_page_route(request: web.Request, page: str):
     try:
-        path = request.match_info["path"]
-        match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
-
-        if match:
-            secure_hash = match.group(1)
-            message_id = int(match.group(2))
-        else:
-            match = re.search(r"(\d+)(?:/.*)?", path)
-            if not match:
-                raise web.HTTPBadRequest(text="Invalid file path")
-            message_id = int(match.group(1))
-            secure_hash = request.rel_url.query.get("hash")
+        message_id, secure_hash = _parse_path(request)
 
         return web.Response(
             text=await render_page(message_id, secure_hash, page=page),
@@ -121,18 +133,7 @@ async def download_handler(request: web.Request):
 
 async def _download_route(request: web.Request):
     try:
-        path = request.match_info["path"]
-        match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
-
-        if match:
-            secure_hash = match.group(1)
-            message_id = int(match.group(2))
-        else:
-            match = re.search(r"(\d+)(?:/.*)?", path)
-            if not match:
-                raise web.HTTPBadRequest(text="Invalid file path")
-            message_id = int(match.group(1))
-            secure_hash = request.rel_url.query.get("hash")
+        message_id, secure_hash = _parse_path(request)
 
         return await media_streamer(
             request,

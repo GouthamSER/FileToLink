@@ -22,8 +22,7 @@ EXPOSE 8080
 # Pass PORT so your app can read it
 ENV PORT=8080
 # glibc arenas fragment RAM across threads -> cap them
-ENV DZGRAM_MAX_CONCURRENT_TRANSMISSIONS=16 \
-    MALLOC_ARENA_MAX=2 \
+ENV MALLOC_ARENA_MAX=2 \
     MALLOC_TRIM_THRESHOLD_=131072 \
     PYTHONUNBUFFERED=1
 

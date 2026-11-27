@@ -34,4 +34,4 @@ class script(object):
 ⏰ <b>ᴛɪᴍᴇ</b> : <code>{}</code>
 🌏 <b>ᴢᴏɴᴇ</b> : <code>Asia/Kolkata</code>
 🟢 <b>sᴛᴀᴛᴜs</b> : <code>ᴏɴʟɪɴᴇ</code>
-🛠️ <b>ʙᴜɪʟᴅ</b> : <code>v1.5.0</code></blockquote>"""
+🛠️ <b>ʙᴜɪʟᴅ</b> : <code>v1.5.2</code></blockquote>"""

@@ -6,7 +6,7 @@
 
 **High-Performance Telegram Cloud Streamer & Instant Direct Download Engine**
 
-[![Version](https://img.shields.io/badge/Version-v1.5.0-8B5CF6?style=for-the-badge&logo=git&logoColor=white)](#-changelog)
+[![Version](https://img.shields.io/badge/Version-v1.5.2-8B5CF6?style=for-the-badge&logo=git&logoColor=white)](#-changelog)
 [![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![Telegram Engine](https://img.shields.io/badge/Telegram-MTProto%20v2-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/wudixh15)
 [![Telegram Library](https://img.shields.io/badge/Library-wzgram%20%5Bfast%5D-F59E0B?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/wzgram/)
@@ -146,9 +146,8 @@ docker run -d -p 8080:8080 --env-file .env --name file2link_app file2link
 | `MAX_STREAMS_PER_IP` | Optional | Max simultaneous streams per user IP (default `6`). |
 | `STREAM_CONCURRENCY` / `STREAM_PREFETCH` | Optional | Telegram chunks fetched in parallel / prefetched per stream (defaults `3` / `2`). |
 | `CLIENT_MAX_FETCHES` | Optional | Max simultaneous Telegram fetches per bot client (default `8`). |
-| `DZGRAM_MAX_CONCURRENT_TRANSMISSIONS` | Optional | dzgram transfer concurrency per client. Set to `16` in the `Dockerfile` (library default is 100, which uses more RAM). |
 | `MOVI_SRC` / `MOVI_SRI` | Optional | Movi Player script URL and its SRI hash. Defaults to the pinned v0.4.1 build. |
-| `AUTO_RESTART` | Optional | Periodic graceful restart trigger (default: `True`, 4-hour interval; set `False` to avoid cutting live streams). |
+| `AUTO_RESTART` | Optional | Periodic graceful restart trigger (default: `True`, 3-hour interval; set `False` to avoid cutting live streams). |
 
 ---
 
@@ -173,7 +172,7 @@ docker run -d -p 8080:8080 --env-file .env --name file2link_app file2link
 > **Scaling Formula**: Each additional `MULTI_TOKEN` handles roughly 3–5 concurrent high-bitrate video streams before Telegram triggers rate limiting.
 > `Tokens Needed ≈ Target Peak Concurrent Streams / 4`
 
-- **Memory Consumption**: Each MTProto client consumes roughly 25–35 MB RAM (dzgram itself needs ~70 MB once at import). On a 512 MB dyno/container, 4–6 clients plus the stream caps run comfortably.
+- **Memory Consumption**: Each MTProto client consumes roughly 25–35 MB RAM. On a 512 MB dyno/container, 4–6 clients plus the stream caps run comfortably.
 - **Maximum Download Speed**: For desktop downloads, recommend **IDM** with 16 connections. For mobile downloads, recommend **1DM** or **ADM**.
 - **Live Health Status**: Visit `GET /` or `GET /?json=true` on your deployment URL anytime to view live uptime, active workload counts, and client distribution.
 
@@ -191,7 +190,7 @@ FileToLink/
 │   └── users_chats_db.py      # Async MongoDB layer: users + banned_users (cached) with fail-safe guards
 ├── lib/
 │   ├── bot/
-│   │   ├── __init__.py        # Primary dzgram (Pyrogram API) client definition
+│   │   ├── __init__.py        # Primary wzgram (Pyrogram API) client definition
 │   │   └── clients.py         # Multi-client pool initialization & graceful stopper
 │   ├── server/
 │   │   └── exceptions.py      # Custom exceptions (InvalidHash, FIleNotFound)
@@ -218,11 +217,11 @@ FileToLink/
 
 ## 🧾 Changelog
 
-Current version code: **`v1.5.0`** (also exposed as `__version__` in `lib/__init__.py`).
+Current version code: **`v1.5.2`** (also exposed as `__version__` in `lib/__init__.py`).
 
 | Version | Changes |
 |---|---|
-| **v1.5.0** | 🔁 Telegram library switched to **`dzgram[fast]`** (Pyrogram-compatible fork, warpcrypto + uvloop) · `DZGRAM_MAX_CONCURRENT_TRANSMISSIONS=16` · README refresh |
+| **v1.5.2** | ⏪ Back on **`wzgram[fast]`** (dzgram dropped) · no Cloudflare settings |
 | **v1.4.0** | 🎞️ **Movi Player v0.4.1** page: audio-track + subtitle switching, subtitle delay, resume, external-app launchers · liquid-glass UI · pinned CDN + SRI · old Plyr watch page removed (`/watch`, `/stream`, `/movi` all use Movi) |
 | **v1.3.1** | `HEAD` requests exempt from stream caps · per-IP default raised to 6 |
 | **v1.3.0** | 🧯 Heroku R14 fix: global (`MAX_ACTIVE_STREAMS`) and per-IP (`MAX_STREAMS_PER_IP`) stream caps, smaller buffers, zero-copy chunks, `MALLOC_ARENA_MAX=2`, 4 workers · new `Script.py` messages · Colab Heroku deploy notebook with auto secret wipe |
