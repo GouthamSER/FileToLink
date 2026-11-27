@@ -1,11 +1,10 @@
-import random, re, urllib.parse, html, time
-import humanize
+import html
+import time
 from Script import script
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from pyrogram.errors import UserNotParticipant
-from info import URL, LOG_CHANNEL, SHORTLINK, FSUB_CHANNEL, ADMINS, is_admin
-from urllib.parse import quote_plus
+from info import URL, LOG_CHANNEL, SHORTLINK, FSUB_CHANNEL, is_admin
 from lib.util.file_properties import get_name, get_hash, get_media_file_size, get_media_from_message
 from lib.util.human_readable import humanbytes
 from database.users_chats_db import db
@@ -75,6 +74,8 @@ async def send_fsub_message(client, message):
 # ─────────────────────────────────────────────
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
+    if not message.from_user:
+        return
     user_id = message.from_user.id
 
     # FSub check
@@ -140,6 +141,8 @@ async def check_fsub_callback(client, callback_query: CallbackQuery):
 # ─────────────────────────────────────────────
 @Client.on_message(filters.private & (filters.document | filters.video | filters.audio | filters.photo))
 async def stream_start(client, message):
+    if not message.from_user:
+        return
     user_id = message.from_user.id
 
     # FSub check
@@ -211,7 +214,7 @@ async def stream_start(client, message):
             f"▶ <b>File Size :</b> {humanbytes(get_media_file_size(message))}</blockquote>\n\n"
             f"<blockquote>➞ <b>Download :</b> <a href='{download}'>{download}</a>\n\n"
             f"➞ <b>Watch Online :</b> <a href='{stream}'>{stream}</a></blockquote>\n\n"
-            f"💡 <i>Tip :- Use IDM (For PC) or 1DM (For Mobile) To Download With Maximum Speed</i>\n\n"
+            f"💡 <i>Tip: Download faster with <a href='https://t.me/wudixh15/4'>F2L Downloader</a> (PC / Android)</i>\n\n"
             f"<blockquote>CC : {bot_username}</blockquote>"
         )
 
