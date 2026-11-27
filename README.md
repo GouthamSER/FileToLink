@@ -9,7 +9,7 @@
 [![Version](https://img.shields.io/badge/Version-v1.5.0-8B5CF6?style=for-the-badge&logo=git&logoColor=white)](#-changelog)
 [![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![Telegram Engine](https://img.shields.io/badge/Telegram-MTProto%20v2-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/wudixh15)
-[![Telegram Library](https://img.shields.io/badge/Library-dzgram%20%5Bfast%5D-F59E0B?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/dzgram/)
+[![Telegram Library](https://img.shields.io/badge/Library-wzgram%20%5Bfast%5D-F59E0B?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/wzgram/)
 [![Async Server](https://img.shields.io/badge/Server-aiohttp%20Speedups-FF6B6B?style=for-the-badge&logo=aiohttp&logoColor=white)](https://aiohttp.readthedocs.io)
 [![Database](https://img.shields.io/badge/Database-MongoDB%20Async-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com)
 [![Docker](https://img.shields.io/badge/Container-Docker%20Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
